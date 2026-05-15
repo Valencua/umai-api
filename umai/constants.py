@@ -1,0 +1,1 @@
+"""Constantes globales del back"""

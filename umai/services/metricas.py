@@ -1,5 +1,5 @@
 from db.supabase_client import supabase
-from datetime import datetime, timezone
+from datetime import datetime, timedelta
 from umai.utils import a_utc
 def obtener_rating_promedio() -> dict:
     response = supabase.table('reseñas') \
@@ -17,11 +17,15 @@ def obtener_rating_promedio() -> dict:
     return {'promedio': promedio}
 
 def obtener_cancelaciones_hoy() -> dict:
-    hoy = a_utc(datetime.now()).date().isoformat()
+    ahora = a_utc(datetime.now())
+    inicio_dia = ahora.replace(hour=0, minute=0, second=0, microsecond=0)
+    fin_dia    = inicio_dia + timedelta(days=1)
+
     response = supabase.table('reservas') \
         .select('reserva_id') \
         .eq('estado', 'cancelado') \
-        .eq('fecha', hoy) \
+        .gte('fecha', inicio_dia.isoformat()) \
+        .lt('fecha', fin_dia.isoformat()) \
         .execute()
 
     return {'cancelaciones': len(response.data)}

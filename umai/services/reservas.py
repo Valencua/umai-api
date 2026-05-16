@@ -15,5 +15,4 @@ def traer_3_mas_recientes_reservas():
         return reservas_recientes.data
 
     except Exception as e:
-        logger.error(f"Error al traer reservas: {str(e)}", exc_info=True)
         return None

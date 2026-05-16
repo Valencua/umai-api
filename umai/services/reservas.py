@@ -1,3 +1,142 @@
+import logging
+import uuid
+from datetime import datetime, timezone
 
+from db import supabase
+from umai.constants import (
+    CAPACIDAD_MAXIMA_PERSONAS_POR_TURNO,
+    ERROR_CODE_RESERVA_ACTIVA,
+    ERROR_CODE_TURNO_LLENO,
+    ESTADO_RESERVA_CANCELADO,
+    ESTADO_RESERVA_PENDIENTE,
+)
+from umai.utils import a_local, construir_error_api, formatear_rfc3339
 
-    
+logger = logging.getLogger(__name__)
+
+def _obtener_o_crear_cliente(nombre: str, email: str, telefono: str) -> int:
+    respuesta = supabase.table('clientes').select('cliente_id').eq('email', email).execute()
+
+    if respuesta.data:
+        cliente_id = respuesta.data[0]['cliente_id']
+        supabase.table('clientes').update({
+            'nombre': nombre,
+            'telefono': telefono,
+        }).eq('cliente_id', cliente_id).execute()
+        return cliente_id
+
+    insertado = supabase.table('clientes').insert({
+        'nombre': nombre,
+        'email': email,
+        'telefono': telefono,
+    }).execute()
+
+    return insertado.data[0]['cliente_id']
+
+def _parsear_fecha_utc(fecha_raw) -> datetime:
+    if isinstance(fecha_raw, str):
+        fecha = datetime.fromisoformat(fecha_raw.replace('Z', '+00:00'))
+    else:
+        fecha = fecha_raw
+
+    if fecha.tzinfo is None:
+        fecha = fecha.replace(tzinfo=timezone.utc)
+
+    return fecha
+
+def _tiene_reserva_activa(email: str) -> bool:
+    respuesta_cliente = supabase.table('clientes').select('cliente_id').eq('email', email).execute()
+
+    if not respuesta_cliente.data:
+        return False
+
+    cliente_id = respuesta_cliente.data[0]['cliente_id']
+    respuesta = supabase.table('reservas').select('fecha, estado').eq(
+        'cliente_id', cliente_id
+    ).neq(
+        'estado', ESTADO_RESERVA_CANCELADO
+    ).execute()
+
+    ahora = datetime.now(timezone.utc)
+
+    for reserva in respuesta.data:
+        if _parsear_fecha_utc(reserva['fecha']) >= ahora:
+            return True
+
+    return False
+
+def _personas_reservadas_en_turno(fecha_hora_utc_iso: str) -> int:
+    respuesta = supabase.table('reservas').select('cantidad_personas').eq(
+        'fecha', fecha_hora_utc_iso
+    ).neq(
+        'estado', ESTADO_RESERVA_CANCELADO
+    ).execute()
+
+    return sum(fila['cantidad_personas'] for fila in respuesta.data)
+
+def _serializar_reserva(reserva: dict, datos_cliente: dict) -> dict:
+    fecha_utc = _parsear_fecha_utc(reserva['fecha'])
+    fecha_local = a_local(fecha_utc)
+
+    return {
+        'reserva_id': reserva['reserva_id'],
+        'nombre': datos_cliente['nombre'],
+        'email': datos_cliente['email'],
+        'telefono': datos_cliente['telefono'],
+        'fecha': formatear_rfc3339(fecha_utc),
+        'horario': fecha_local.strftime('%H:%M'),
+        'cantidad_personas': reserva['cantidad_personas'],
+        'uuid_codigo': reserva['uuid_codigo'],
+        'qr_url': reserva['qr_url'],
+        'estado': reserva['estado'],
+    }
+
+def crear_reserva(data: dict) -> dict:
+    fecha_hora_utc_iso = data['fecha_hora_utc'].isoformat().replace('+00:00', 'Z') #EJ formato ISO '2026-05-20T23:00:00+00:00' → reemplaza +00:00 por Z 2026-05-20T23:00:00Z
+
+    personas_en_turno = _personas_reservadas_en_turno(fecha_hora_utc_iso)
+    if personas_en_turno + data['cantidad_personas'] > CAPACIDAD_MAXIMA_PERSONAS_POR_TURNO:
+        logger.warning(
+            'Turno lleno para %s: %s personas ya reservadas',
+            fecha_hora_utc_iso,
+            personas_en_turno,
+        )
+        raise ValueError(construir_error_api(
+            code=ERROR_CODE_TURNO_LLENO,
+            message='Turno sin disponibilidad',
+            description=(
+                f'El turno ya alcanzó el máximo de {CAPACIDAD_MAXIMA_PERSONAS_POR_TURNO} '
+                'personas reservadas'
+            )
+        ))
+
+    if _tiene_reserva_activa(data['email']):
+        logger.warning('Cliente con reserva activa intentó reservar de nuevo: %s', data['email'])
+        raise ValueError(construir_error_api(
+            code=ERROR_CODE_RESERVA_ACTIVA,
+            message='Ya tenés una reserva activa',
+            description=(
+                'Solo podés tener una reserva a la vez. '
+                'Cancelá la actual o esperá a que pase el turno para reservar de nuevo'
+            )
+        ))
+
+    cliente_id = _obtener_o_crear_cliente(
+        data['nombre'],
+        data['email'],
+        data['telefono'],
+    )
+
+    codigo = uuid.uuid4()
+    qr_url = f'https://umai.example/qr/{codigo}'
+
+    insertado = supabase.table('reservas').insert({
+        'cliente_id': cliente_id,
+        'fecha': fecha_hora_utc_iso,
+        'cantidad_personas': data['cantidad_personas'],
+        'uuid_codigo': str(codigo),
+        'qr_url': qr_url,
+        'estado': ESTADO_RESERVA_PENDIENTE,
+    }).execute()
+
+    return _serializar_reserva(insertado.data[0], data)

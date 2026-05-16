@@ -1,5 +1,34 @@
 """Constantes globales del back"""
 
-# Codigos de error
-ERROR_CODE_INVALID_BODY        = 'invalid.body'
-ERROR_CODE_INVALID_MIN_VALUE   = 'invalid.min.value'
+TZ_LOCAL_NAME = 'America/Argentina/Buenos_Aires'
+
+FORMATO_FECHA = '%Y-%m-%d'
+FORMATO_HORARIO = '%H:%M'
+
+# Horario de atención (el cierre cruza medianoche: 18:30 → 01:00)
+HORA_APERTURA = 18
+MINUTO_APERTURA = 30
+HORA_CIERRE = 1
+MINUTO_CIERRE = 0
+
+MIN_PERSONAS = 1
+MAX_PERSONAS = 5
+
+TELEFONO_MIN_DIGITOS = 8
+TELEFONO_MAX_DIGITOS = 15
+TELEFONO_MIN_LONGITUD = 8
+TELEFONO_MAX_LONGITUD = 30
+
+CAPACIDAD_MAXIMA_PERSONAS_POR_TURNO = 40
+
+ESTADO_RESERVA_PENDIENTE = 'pendiente'  
+ESTADO_RESERVA_CONFIRMADO = 'confirmado' 
+ESTADO_RESERVA_CANCELADO = 'cancelado' 
+
+ERROR_CODE_INVALID_BODY = 'invalid.body'
+ERROR_CODE_INVALID_MIN_VALUE = 'invalid.min.value'
+ERROR_CODE_INVALID_MAX_VALUE = 'invalid.max.value'
+ERROR_CODE_TURNO_LLENO = 'turno.lleno'
+ERROR_CODE_RESERVA_ACTIVA = 'reserva.activa'
+
+ERROR_CODES_CONFLICTO = (ERROR_CODE_TURNO_LLENO, ERROR_CODE_RESERVA_ACTIVA)

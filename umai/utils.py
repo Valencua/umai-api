@@ -3,7 +3,7 @@ Para manejar las excepciones, errores, etc. (Más que nada lo vamos a utilizar
 para utilizarlo como handler global)
 """
 
-
+import re
 
 def construir_error_api(code: str, message: str, description: str, level: str = 'error') -> dict:
     return {
@@ -34,3 +34,11 @@ def validar_longitud(valor: str, campo: str, min: int = None, max: int = None) -
 
     if errores:
         raise ValueError({'errors': errores})
+
+def validar_solo_letras(valor: str, campo: str) -> None:
+    if not re.match(r'^[a-zA-Z\s]+$', valor):
+        raise ValueError({'errors': [construir_error_api(
+            code=f'invalid.{campo}.format',
+            message=f"'{campo}' contiene caracteres inválidos",
+            description=f"El campo '{campo}' solo puede contener letras y espacios"
+        )['errors'][0]]})

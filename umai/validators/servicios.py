@@ -1,4 +1,4 @@
-from umai.utils import construir_error_api, validar_longitud
+from umai.utils import construir_error_api, validar_longitud, validar_solo_letras
 
 def validar_crear_servicio(body: dict) -> dict:
     errores = []
@@ -13,7 +13,7 @@ def validar_crear_servicio(body: dict) -> dict:
     if errores:
         raise ValueError({'errors': errores})
     try:
-        validar_longitud(body['nombre'], 'nombre', min=5, max=100)
+        validar_longitud(body['nombre'], 'nombre', min=3, max=100)
     except ValueError as e:
         errores.extend(e.args[0]['errors'])
 
@@ -24,6 +24,11 @@ def validar_crear_servicio(body: dict) -> dict:
 
     try:
         validar_longitud(body['icono'], 'icono', min=1, max=10)
+    except ValueError as e:
+        errores.extend(e.args[0]['errors'])
+    
+    try:
+        validar_solo_letras(body['nombre'], 'nombre')
     except ValueError as e:
         errores.extend(e.args[0]['errors'])
 

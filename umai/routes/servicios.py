@@ -4,8 +4,8 @@ from umai.validators.servicios import validar_crear_servicio
 from umai.utils import construir_error_api
 from umai.services.servicios import crear_servicio
 
-from ..constants import (
-    ERROR_CODE_INVALID_BODY)
+from umai.constants import (
+    ERROR_CODE_INVALID_BODY, ERROR_CODE_INTERNAL_SERVER)
 
 servicios_bp = Blueprint('servicios', __name__)
 
@@ -25,5 +25,11 @@ def post_servicio():
         servicio = crear_servicio(data)
     except ValueError as e:
         return jsonify(e.args[0]), 400
+    except Exception as e:
+        return jsonify(construir_error_api(
+            code=ERROR_CODE_INTERNAL_SERVER,
+            message='error al procesar la solicitud',
+            description='Hubo un error interno'
+        )), 500
     
     return jsonify(servicio), 201

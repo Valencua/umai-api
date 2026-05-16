@@ -1,7 +1,7 @@
 from db.supabase_client import supabase
 from umai.utils import construir_error_api
 
-def traer_servicios() -> list:
+def obtener_servicios() -> list:
     response = supabase.table('servicios')
         .select('*')
         .execute()

@@ -34,3 +34,15 @@ def validar_longitud(valor: str, campo: str, min: int = None, max: int = None) -
 
     if errores:
         raise ValueError({'errors': errores})
+
+def validar_minimo(valor: int, minimo: int, nombre: str) -> int:
+    if valor < minimo:
+        logger.warning(f"Valor por debajo del mínimo: '{nombre}' es {valor}, mínimo esperado {minimo}")
+
+        raise ValueError(construir_error_api(
+            code=ERROR_CODE_INVALID_MIN_VALUE,
+            message='Valor por debajo del mínimo permitido',
+            description=f"El parámetro '{nombre}' debe ser mayor o igual a {minimo}. Se recibió: {valor}"
+        ))
+
+    return valor

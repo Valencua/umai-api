@@ -4,6 +4,8 @@ from umai.validators.servicios import validar_crear_servicio
 from umai.utils import construir_error_api
 from umai.services.servicios import crear_servicio
 
+from umai.services.servicios import traer_servicios
+
 from ..constants import (
     ERROR_CODE_INVALID_BODY)
 

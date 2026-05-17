@@ -25,6 +25,7 @@ from umai.utils import (
     validar_maximo,
     validar_minimo,
     validar_telefono,
+    validar_solo_letras,
 )
 
 logger = logging.getLogger(__name__)
@@ -53,6 +54,7 @@ def validar_crear_reserva(body: dict) -> dict:
 
     try:
         validar_longitud(nombre, 'nombre', min=3, max=100)
+        validar_solo_letras(nombre, 'nombre')
     except ValueError as e:
         errores.extend(e.args[0]['errors'])
 

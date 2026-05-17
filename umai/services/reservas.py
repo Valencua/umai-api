@@ -10,6 +10,7 @@ from umai.constants import (
     ESTADO_RESERVA_CANCELADO,
     ESTADO_RESERVA_PENDIENTE,
     ERROR_CODE_RESERVA_NO_ENCONTRADA,
+    ERROR_CODE_RESERVA_YA_CONFIRMADA,
     ESTADO_RESERVA_CONFIRMADO,
     ERROR_CODE_RESERVA_CANCELADA,
 )
@@ -182,6 +183,25 @@ def confirmar_asistencia_por_codigo(uuid_codigo: str) -> dict:
 
     actualizado = supabase.table('reservas').update({
         'estado': ESTADO_RESERVA_CONFIRMADO,
+    }).eq('uuid_codigo', uuid_codigo).execute()
+
+    return _serializar_reserva(actualizado.data[0], datos_cliente)
+
+def cancelar_reserva_por_codigo(uuid_codigo: str) -> dict:
+    reserva, datos_cliente = _obtener_reserva_y_cliente_por_uuid(uuid_codigo)
+
+    if reserva['estado'] == ESTADO_RESERVA_CANCELADO:
+        return _serializar_reserva(reserva, datos_cliente)
+
+    if reserva['estado'] == ESTADO_RESERVA_CONFIRMADO:
+        raise ValueError(construir_error_api(
+            code=ERROR_CODE_RESERVA_YA_CONFIRMADA,
+            message='No se puede cancelar la reserva',
+            description='La reserva ya fue confirmada (asistencia registrada) y no puede cancelarse'
+        ))
+
+    actualizado = supabase.table('reservas').update({
+        'estado': ESTADO_RESERVA_CANCELADO,
     }).eq('uuid_codigo', uuid_codigo).execute()
 
     return _serializar_reserva(actualizado.data[0], datos_cliente)

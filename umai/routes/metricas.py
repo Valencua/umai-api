@@ -1,25 +1,31 @@
-import logging
-from flask import Blueprint, jsonify, request
-from umai.utils import construir_error_api
-from umai.services.reservas import obtener_reservas_hoy as obtener_reservas_hoy_service
-reservas_bp = Blueprint('reservas', __name__)
 
-@reservas_bp.route('/hoy/', methods=['GET'])
+from flask import Blueprint, jsonify
+
+from umai.constants import ERROR_CODE_INTERNAL_SERVER
+from umai.services.metricas import obtener_reservas_hoy as obtener_reservas_hoy_service
+from umai.utils import construir_error_api
+
+metricas_bp = Blueprint('metricas', __name__)
+
+@metricas_bp.route('/hoy/', methods=['GET'])
 def obtener_reservas_hoy():
     try:
         reservas = obtener_reservas_hoy_service()
-        if reservas is not None:
-            return jsonify(reservas), 200
-        else:
+
+        if reservas is None:
             return jsonify(construir_error_api(
-                code='reservas.not_found',
-                message='No se encontraron reservas para hoy',
-                description='No hay reservas registradas para la fecha actual'
-            )), 404
-    except Exception as e:
-        logging.error(f"Error al obtener reservas: {e}")
+                code=ERROR_CODE_INTERNAL_SERVER,
+                message='Error al obtener reservas',
+                description='Ocurrió un error al intentar obtener las reservas para hoy'
+            )), 500
+
+        return jsonify({
+            'data': reservas,
+            'status': 'success'
+        }), 200
+    except Exception:
         return jsonify(construir_error_api(
-            code='reservas.error',
+            code=ERROR_CODE_INTERNAL_SERVER,
             message='Error al obtener reservas',
             description='Ocurrió un error al intentar obtener las reservas para hoy'
         )), 500

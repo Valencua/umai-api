@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify, request
 
+
 reservas_bp = Blueprint('reservas', __name__)
 
 @reservas_bp.route('/', methods=['POST'])
@@ -14,3 +15,4 @@ def post_reserva():
     Si todo corre bien, crear reserva en el service
     """
     return jsonify(), 201
+

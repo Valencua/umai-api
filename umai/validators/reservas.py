@@ -1,4 +1,5 @@
 import logging
+import uuid as uuid_lib
 
 from umai.constants import (
     FORMATO_FECHA,
@@ -11,6 +12,7 @@ from umai.constants import (
     MINUTO_CIERRE,
     TELEFONO_MAX_LONGITUD,
     TELEFONO_MIN_LONGITUD,
+    ERROR_CODE_UUID_CODIGO_INVALIDO,
 )
 from umai.utils import (
     a_utc,
@@ -29,6 +31,23 @@ from umai.utils import (
 )
 
 logger = logging.getLogger(__name__)
+
+def validar_uuid_codigo(uuid_codigo: str) -> str:
+    if not uuid_codigo or not str(uuid_codigo).strip():
+        raise ValueError(construir_error_api(
+            code='required.uuid_codigo',
+            message="Campo requerido: 'uuid_codigo'",
+            description='El código de la reserva es obligatorio'
+        ))
+
+    try:
+        return str(uuid_lib.UUID(str(uuid_codigo).strip()))
+    except ValueError:
+        raise ValueError(construir_error_api(
+            code=ERROR_CODE_UUID_CODIGO_INVALIDO,
+            message="Formato de 'uuid_codigo' inválido",
+            description='El código debe ser un UUID válido (ej. a3f2b1c4-5678-90ab-cdef-1234567890ab)'
+        ))
 
 
 def validar_crear_reserva(body: dict) -> dict:

@@ -87,7 +87,7 @@ def _obtener_reserva_y_cliente_por_uuid(uuid_codigo: str) -> tuple[dict, dict]:
         raise ValueError(construir_error_api(
             code=ERROR_CODE_RESERVA_NO_ENCONTRADA,
             message='Reserva no encontrada',
-            description=f"No existe una reserva con el cÃ³digo '{uuid_codigo}'"
+            description=f"No existe una reserva con el codigo '{uuid_codigo}'"
         ))
 
     fila = respuesta.data[0]
@@ -131,19 +131,19 @@ def crear_reserva(data: dict) -> dict:
             code=ERROR_CODE_TURNO_LLENO,
             message='Turno sin disponibilidad',
             description=(
-                f'El turno ya alcanzó el máximo de {CAPACIDAD_MAXIMA_PERSONAS_POR_TURNO} '
+                f'El turno ya alcanzo el maximo de {CAPACIDAD_MAXIMA_PERSONAS_POR_TURNO} '
                 'personas reservadas'
             )
         ))
 
     if _tiene_reserva_activa(data['email']):
-        logger.warning('Cliente con reserva activa intentó reservar de nuevo: %s', data['email'])
+        logger.warning('Cliente con reserva activa intento reservar de nuevo: %s', data['email'])
         raise ValueError(construir_error_api(
             code=ERROR_CODE_RESERVA_ACTIVA,
-            message='Ya tenés una reserva activa',
+            message='Ya tenes una reserva activa',
             description=(
-                'Solo podés tener una reserva a la vez. '
-                'Cancelá la actual o esperá a que pase el turno para reservar de nuevo'
+                'Solo podes tener una reserva a la vez. '
+                'Cancela la actual o espera a que pase el turno para reservar de nuevo'
             )
         ))
 
@@ -174,7 +174,7 @@ def confirmar_asistencia_por_codigo(uuid_codigo: str) -> dict:
         raise ValueError(construir_error_api(
             code=ERROR_CODE_RESERVA_CANCELADA,
             message='No se puede confirmar asistencia',
-            description='La reserva está¡ cancelada y no puede marcarse como asistida'
+            description='La reserva esta cancelada y no puede marcarse como asistida'
         ))
 
     if reserva['estado'] == ESTADO_RESERVA_CONFIRMADO:

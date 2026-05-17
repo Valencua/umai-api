@@ -1,35 +1,31 @@
-
-import logging
 from db import supabase
+from umai.constants import FORMATO_FECHA
+from umai.utils import validar_email, validar_formato_fecha
 
 
 def validar_usuario_para_reseña(email, fecha):
-    try:
-        # Buscar cliente por email, si existe una reserva siquiera
-        cliente_resp = (
-            supabase.table('clientes')
-            .select('cliente_id')
-            .eq('email', email)
-            .limit(1)
-            .execute()
-        )
+    validar_email(email)
+    fecha_validada = validar_formato_fecha(fecha, FORMATO_FECHA)
+    fecha_normalizada = fecha_validada.strftime(FORMATO_FECHA)
 
-        # si el data está vacio quiere decir que no se encontró cliente con ese email
-        if not cliente_resp.data:
-            return False
+    cliente_resp = (
+        supabase.table('clientes')
+        .select('cliente_id')
+        .eq('email', email)
+        .limit(1)
+        .execute()
+    )
 
-        cliente_id = cliente_resp.data[0].get('cliente_id')
+    if not cliente_resp.data:
+        return False
 
-        # Buscar reservas del cliente
-        reservas_resp = (
-            supabase.table('reservas')
-            .select('fecha')
-            .eq('cliente_id', cliente_id)
-            .execute()
-        )
+    cliente_id = cliente_resp.data[0].get('cliente_id')
 
-        # Chequear si alguna fecha empieza con la fecha buscada. any() te ahorras el loop explícito y es más eficiente.
-        return any(str(r.get('fecha')).startswith(str(fecha)) for r in reservas_resp.data)
+    reservas_resp = (
+        supabase.table('reservas')
+        .select('fecha')
+        .eq('cliente_id', cliente_id)
+        .execute()
+    )
+    return any(str(reserva.get('fecha')).startswith(fecha_normalizada) for reserva in reservas_resp.data)
 
-    except Exception:
-        return None

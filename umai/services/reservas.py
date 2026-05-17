@@ -9,6 +9,9 @@ from umai.constants import (
     ERROR_CODE_TURNO_LLENO,
     ESTADO_RESERVA_CANCELADO,
     ESTADO_RESERVA_PENDIENTE,
+    ERROR_CODE_RESERVA_NO_ENCONTRADA,
+    ESTADO_RESERVA_CONFIRMADO,
+    ERROR_CODE_RESERVA_CANCELADA,
 )
 from umai.utils import a_local, construir_error_api, formatear_rfc3339
 
@@ -73,6 +76,29 @@ def _personas_reservadas_en_turno(fecha_hora_utc_iso: str) -> int:
     ).execute()
 
     return sum(fila['cantidad_personas'] for fila in respuesta.data)
+
+def _obtener_reserva_y_cliente_por_uuid(uuid_codigo: str) -> tuple[dict, dict]:
+    respuesta = supabase.table('reservas').select(
+        'reserva_id, cliente_id, fecha, cantidad_personas, uuid_codigo, qr_url, estado, '
+        'clientes(nombre, email, telefono)'
+    ).eq('uuid_codigo', uuid_codigo).execute()
+
+    if not respuesta.data:
+        raise ValueError(construir_error_api(
+            code=ERROR_CODE_RESERVA_NO_ENCONTRADA,
+            message='Reserva no encontrada',
+            description=f"No existe una reserva con el cÃ³digo '{uuid_codigo}'"
+        ))
+
+    fila = respuesta.data[0]
+    cliente = fila.pop('clientes') or {}
+    datos_cliente = {
+        'nombre': cliente.get('nombre', ''),
+        'email': cliente.get('email', ''),
+        'telefono': cliente.get('telefono', ''),
+    }
+    return fila, datos_cliente
+
 
 def _serializar_reserva(reserva: dict, datos_cliente: dict) -> dict:
     fecha_utc = _parsear_fecha_utc(reserva['fecha'])
@@ -140,3 +166,22 @@ def crear_reserva(data: dict) -> dict:
     }).execute()
 
     return _serializar_reserva(insertado.data[0], data)
+
+def confirmar_asistencia_por_codigo(uuid_codigo: str) -> dict:
+    reserva, datos_cliente = _obtener_reserva_y_cliente_por_uuid(uuid_codigo)
+
+    if reserva['estado'] == ESTADO_RESERVA_CANCELADO:
+        raise ValueError(construir_error_api(
+            code=ERROR_CODE_RESERVA_CANCELADA,
+            message='No se puede confirmar asistencia',
+            description='La reserva está¡ cancelada y no puede marcarse como asistida'
+        ))
+
+    if reserva['estado'] == ESTADO_RESERVA_CONFIRMADO:
+        return _serializar_reserva(reserva, datos_cliente)
+
+    actualizado = supabase.table('reservas').update({
+        'estado': ESTADO_RESERVA_CONFIRMADO,
+    }).eq('uuid_codigo', uuid_codigo).execute()
+
+    return _serializar_reserva(actualizado.data[0], datos_cliente)

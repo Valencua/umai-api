@@ -11,9 +11,16 @@ platos_bp = Blueprint('platos', __name__)
 def listar_platos():
     try:
         platos = traer_todos_los_platos()
-        return jsonify({'data': platos, 'status': 'success'}), 200
+        return jsonify({
+            'data': platos, 
+            'status': 'success'
+        }), 200
     
     except Exception:
-        return jsonify(construir_error_api('LIST_ERROR', 'Error listando platos', 'Error inesperado')), 500
+        return jsonify(construir_error_api(
+            'LIST_ERROR', 
+            'Error listando platos', 
+            'Error inesperado')
+            ), 500
 
 

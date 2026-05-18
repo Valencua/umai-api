@@ -1,9 +1,5 @@
-from flask import Blueprint, jsonify, request
-
-from umai.validators.servicios import validar_crear_servicio
+from flask import Blueprint, jsonify
 from umai.utils import construir_error_api
-from umai.services.servicios import crear_servicio
-
 from umai.services.servicios import obtener_servicios
 
 from ..constants import (

@@ -7,8 +7,8 @@ from ..constants import ERROR_CODE_INVALID_BODY
 servicios_bp = Blueprint('servicios', __name__)
 
 
-@servicios_bp.route('/<int:servicio_id>/', methods=['PATCH'])
-def patch_estado_servicio(servicio_id):
+@servicios_bp.route('/<id>', methods=['PATCH'])
+def patch_estado_servicio(id):
     body = request.get_json(silent=True)
 
     if body is None:
@@ -19,7 +19,7 @@ def patch_estado_servicio(servicio_id):
         )), 400
 
     try:
-        servicio_actualizado = actualizar_estado_servicio(servicio_id, body['estado'])
+        servicio_actualizado = actualizar_estado_servicio(id, body['estado'])
     except Exception as error:
         return jsonify(construir_error_api(
             code="internal.server.error",

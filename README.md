@@ -1,35 +1,163 @@
+<div align="center">
+
+# 🍽️ Restaurant Management API
+
+### Backend desarrollado en Python + Supabase
+
+API REST para la gestión integral de restaurantes:  
+pedidos, productos, mesas, métricas y administración.
+
+---
+
+![Python](https://img.shields.io/badge/Python-3.11-blue?style=for-the-badge&logo=python)
+![FastAPI](https://img.shields.io/badge/FastAPI-Backend-009688?style=for-the-badge&logo=fastapi)
+![Supabase](https://img.shields.io/badge/Supabase-Database-3ECF8E?style=for-the-badge&logo=supabase)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Database-316192?style=for-the-badge&logo=postgresql)
+
+</div>
+
+---
+
+# 📌 Características
+
+✅ Gestión de pedidos  
+✅ Gestión de productos  
+✅ Métricas y reportes  
+✅ API REST escalable  
+✅ Integración con Supabase  
+
+---
+
+# 🛠️ Stack Tecnológico
+
+| Tecnología | Uso |
+|---|---|
+| Python | Backend |
+| FastAPI | Framework API |
+| Supabase | Base de datos y servicios |
+| PostgreSQL | Persistencia de datos |
+| Git/GitHub | Control de versiones |
+
+---
+
+# 🚀 Instalación
+
+## 1️⃣ Clonar repositorio y crear rama o acceder rama
+
 ```bash
-
-INSTRUCCIONES:
-  1. Crear .env y poner las credenciales correspondietes a supa
-
-  2. Aegurarse de actualizar supabase: pip install supabase --upgrade
-
-  3. 
-    python3 -m venv venv
-    source venv/bin/activate   # Windows: venv\Scripts\activate
-    pip install -r requirements.txt
-    python3 -m app
-
-
-
-RAMAS:
-  feature/enpdoint_a_realizaqr
-  feature/metricas/endpoint_a_ralizar
-
-COMMITS:
-  feat: (Feature) – Una nueva funcionalidad para el sistema (un nuevo endpoint, un botón nuevo, una nueva vista).
-
-  fix: – La solución a un error, bug o comportamiento inesperado en el sistema.
-
-  chore: – Tareas de mantenimiento general que no modifican el código de la aplicación ni agregan lógica (actualizar librerías, configurar herramientas como Docker/Git, borrar archivos temporales).
-
-  refactor: – Cambios en el código que ni arreglan un bug ni añaden una función, sino que lo hacen más limpio, eficiente o fácil de leer.
-
-  perf: (Performance) – Un cambio de código específico para que la aplicación corra más rápido o consuma menos memoria.
-
-  style: – Cambios que no afectan el significado del código (espacios en blanco, formateo de identación, puntos y comas faltantes, etc. Nota: No se refiere a CSS/diseño visual, sino al estilo de escritura del código).
-
-  docs: – Cambios exclusivamente en la documentación (el archivo README.md, comentarios explicativos en el código, documentación de la API).
+git clone https://github.com/Valencua/umai-api.git
+cd umai-api
+git branch tu_rama_nueva
+git switch ru_rama_nueva
 ```
+
+---
+
+## 2️⃣ Crear entorno virtual
+
+### Linux / Mac
+
+```bash
+python -m venv venv
+source venv/bin/activate
+```
+
+### Windows
+
+```bash
+venv\Scripts\activate
+```
+
+---
+
+## 3️⃣ Instalar dependencias
+
+```bash
+pip install -r requirements.txt
+```
+
+---
+
+## 4️⃣ Variables de entorno
+
+Crear un archivo `.env`:
+
+```env
+SUPABASE_URL="tu_url_de_supabase"
+SUPABASE_KEY="tu_anon_key_de_supabase"
+```
+
+---
+
+## 5️⃣ Ejecutar servidor
+
+```bash
+python3 -m app
+```
+
+---
+
+# 📂 Estructura del Proyecto
+
+```bash
+📦 umai-api
+┣ 📂 db
+┃ ┣ 📜 __init__.py
+┃ ┗ 📜 supabase_client.py
+┣ 📂 umai
+┃ ┣ 📂 routes
+┃ ┣ 📂 services
+┃ ┣ 📂 validators
+┃ ┣ 📜 utils.py
+┃ ┗ 📜 constants.py
+┣ 📜 app.py
+┣ 📜 requirements.txt
+┣ 📜 .env
+┣ 📜 .env.example
+┣ 📜 .gitignore 
+┗ 📜 README.md
+```
+
+---
+
+# 🌱 Convención de Ramas
+
+```bash
+feature/nombre-feature
+feature/metricas_nombre-metrica
+```
+
+### Ejemplos
+
+```bash
+feature/crear_pedido
+feature/metricas_ventas_mensuales
+
+```
+
+---
+
+# 📝 Convención de Commits
+
+| Commit | Descripción |
+|---|---|
+| feat: | Nueva funcionalidad |
+| fix: | Corrección de errores |
+| refactor: | Mejora interna del código |
+| perf: | Optimización |
+| style: | Formato y estilo |
+| docs: | Documentación |
+| chore: | Mantenimiento |
+
+---
+
+## ✅ Ejemplos
+
+```bash
+feat: agregar endpoint de pedidos
+fix: corregir validación de productos
+docs: actualizar instalación
+refactor: mejorar autenticación
+```
+
 

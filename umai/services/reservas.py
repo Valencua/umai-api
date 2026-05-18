@@ -6,7 +6,11 @@ from umai.constants import (
     ESTADO_RESERVA_CANCELADO
 )
 
-from umai.utils import construir_error_api
+from umai.utils import (
+    construir_error_api,
+    a_utc,
+    TZ_LOCAL
+)
 
 HORARIOS_DISPONIBLES = [
     '20:00','21:00','22:00','23:00'
@@ -15,7 +19,7 @@ HORARIOS_DISPONIBLES = [
 def obtener_disponibilidad(fecha: str):
     try:
         fecha_obj = datetime.strptime(
-                fecha, '%Y-%m-%d'
+            fecha, '%Y-%m-%d'
             ).date()
         
     except ValueError:
@@ -38,7 +42,19 @@ def obtener_disponibilidad(fecha: str):
     disponibilidad = []
 
     for horario in HORARIOS_DISPONIBLES:
-         fecha_hora = f'{fecha}T{horario}:00Z'
+
+         fecha_local = datetime.strptime(
+         f'{fecha} {horario}',
+         '%Y-%m-%d %H:%M'
+         ).replace(tzinfo=TZ_LOCAL)
+
+         fecha_utc = a_utc(fecha_local)
+        
+        fecha_hora = fecha_utc.isoformat().replace(
+            '+00:00',
+            'Z'
+        )
+        
          response = (
               supabase
               .table('reservas')
@@ -55,15 +71,12 @@ def obtener_disponibilidad(fecha: str):
         )
     
     lugares_disponibles = (
-            CAPACIDAD_MAXIMA_PERSONAS_POR_TURNO
-            - personas_reservadas
+            CAPACIDAD_MAXIMA_PERSONAS_POR_TURNO - personas_reservadas
         )
     
     disponibilidad.append({
             'horario': horario,
-
             'lugares_disponibles': lugares_disponibles,
-
             'disponible': lugares_disponibles > 0
         })
     return disponibilidad

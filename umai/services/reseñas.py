@@ -1,7 +1,8 @@
 import logging
 from db import supabase
-from umai.constants import FORMATO_FECHA
+from umai.constants import FORMATO_FECHA, ESTADO_RESERVA_CONFIRMADO
 from umai.utils import validar_email, validar_formato_fecha
+
 
 
 def validar_usuario_para_reseña(email, fecha):
@@ -33,7 +34,7 @@ def validar_usuario_para_reseña(email, fecha):
         fecha_reserva = reserva.get('fecha')
         estado_reserva = reserva.get('estado')
 
-        if str(fecha_reserva).startswith(fecha_busqueda) and estado_reserva == 'confirmado':
+        if str(fecha_reserva).startswith(fecha_busqueda) and estado_reserva == ESTADO_RESERVA_CONFIRMADO:
             return True
 
     return False

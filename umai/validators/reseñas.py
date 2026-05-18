@@ -7,7 +7,6 @@ def validar_crear_reseña(body: dict) -> dict:
     errores = []
     campos_requeridos = ['cliente_id', 'descripcion', 'rating']
 
-    #verificar que los campos requeridos esten
     for campo in campos_requeridos:
         if campo not in body or body[campo] is None:
             errores.append(construir_error_api(
@@ -26,7 +25,7 @@ def validar_crear_reseña(body: dict) -> dict:
         validar_longitud(str(descripcion), 'descripcion', min=3, max=500)
     except ValueError as e:
         if isinstance(e.args[0], dict):
-            errores.extend(e.arg[0]['errors'])
+            errores.extend(e.args[0]['errors'])
 
     if not isinstance(rating, int):
         errores.append(construir_error_api(
@@ -39,7 +38,6 @@ def validar_crear_reseña(body: dict) -> dict:
             validar_minimo(rating, 1, 'rating')
             validar_maximo(rating, 5, 'rating')
         except ValueError as e:
-            print("error en validar min/max:", e.args[0])
             if isinstance(e.args[0], dict) and 'errors' in e.args[0]:
                 errores.extend(e.args[0]['errors'])
 

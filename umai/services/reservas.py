@@ -1,7 +1,4 @@
-import logging
 from db import supabase
-
-logger = logging.getLogger(__name__)
 
 def get_top3_reservas():
     reservas_recientes = (

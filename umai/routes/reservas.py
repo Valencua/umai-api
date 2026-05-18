@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request
-
+from umai.services.reservas import obtener_reservas_codigo
 
 reservas_bp = Blueprint('reservas', __name__)
 
@@ -16,3 +16,12 @@ def post_reserva():
     """
     return jsonify(), 201
 
+
+@reservas_bp.route('/reservas/codigo/<string:uuid_codigo>', methods=['GET'])
+def obtener_reserva(uuid_codigo):
+    reserva = obtener_reservas_codigo(uuid_codigo)
+
+    if reserva:
+        return jsonify(reserva), 200
+    else:
+        return jsonify({"error": "No existe el código de reserva"}), 404

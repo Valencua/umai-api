@@ -23,7 +23,7 @@ def obtener_reservas_hoy():
             .lt('fecha', fin_iso)
             .execute()
         )
-
-        return response.data
+        reservas_hoy = len(response.data)
+        return reservas_hoy
     except Exception:
         return None

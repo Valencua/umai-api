@@ -7,7 +7,7 @@ from umai.utils import construir_error_api
 
 metricas_bp = Blueprint('metricas', __name__)
 
-@metricas_bp.route('/hoy/', methods=['GET'])
+@metricas_bp.route('/reservas-hoy', methods=['GET'])
 def obtener_reservas_hoy():
     try:
         reservas = obtener_reservas_hoy_service()

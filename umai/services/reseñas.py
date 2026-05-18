@@ -1,12 +1,13 @@
+import logging
 from db import supabase
 from umai.constants import FORMATO_FECHA
 from umai.utils import validar_email, validar_formato_fecha
 
 
 def validar_usuario_para_reseña(email, fecha):
-    validar_email(email)
+    email = validar_email(email)
     fecha_validada = validar_formato_fecha(fecha, FORMATO_FECHA)
-    fecha_normalizada = fecha_validada.strftime(FORMATO_FECHA)
+    fecha_busqueda = fecha_validada.strftime(FORMATO_FECHA)
 
     cliente_resp = (
         supabase.table('clientes')
@@ -23,9 +24,16 @@ def validar_usuario_para_reseña(email, fecha):
 
     reservas_resp = (
         supabase.table('reservas')
-        .select('fecha')
+        .select('fecha', 'estado')
         .eq('cliente_id', cliente_id)
         .execute()
     )
-    return any(str(reserva.get('fecha')).startswith(fecha_normalizada) for reserva in reservas_resp.data)
 
+    for reserva in reservas_resp.data:
+        fecha_reserva = reserva.get('fecha')
+        estado_reserva = reserva.get('estado')
+
+        if str(fecha_reserva).startswith(fecha_busqueda) and estado_reserva == 'confirmado':
+            return True
+
+    return False

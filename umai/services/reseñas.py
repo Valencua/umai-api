@@ -1,4 +1,3 @@
-import logging
 from db import supabase
 
 from umai.constants import FORMATO_FECHA, ESTADO_RESERVA_CONFIRMADO
@@ -47,4 +46,18 @@ def listar_reseñas(estado: bool)-> list:
         .execute()
     )
     return respuesta.data
+
+
+def eliminar_reseña(reseña_id: int):
+    try:
+        respuesta = (supabase.table('reseñas').delete().eq('reseña_id', reseña_id).execute())
+
+        if not respuesta.data:
+            return False
+        
+        return True
+    
+    except Exception as e:
+        print(f"Error al eliminar reseña: {str(e)}")
+        return None
 

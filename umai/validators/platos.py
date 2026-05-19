@@ -55,13 +55,13 @@ def validar_crear_plato(body: dict) -> dict:
 
     try:
 
-        precio = float(body['precio'])
+        precio = int(body['precio'])
 
     except ValueError:
 
         errores.append({
             'campo': 'precio',
-            'mensaje': 'El precio debe ser numérico'
+            'mensaje': 'El precio debe ser un numero entero'
         })
 
     etiquetas = body.get('etiquetas', '')

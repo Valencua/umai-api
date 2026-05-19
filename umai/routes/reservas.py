@@ -6,7 +6,7 @@ from umai.constants import ERROR_CODE_INTERNAL_SERVER
 
 reservas_bp = Blueprint('reservas', __name__)
 
-@reservas_bp.route('/', methods=['GET'])
+@reservas_bp.route('/recientes', methods=['GET'])
 def get_3_reservas():
     try:
         reservas = get_top3_reservas()

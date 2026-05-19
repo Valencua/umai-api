@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify
-
-from umai.services.metricas import obtener_rating_promedio, obtener_reservas_hoy, obtener_cancelaciones_hoy
+from umai.services.metricas import obtener_rating_promedio, obtener_reservas_hoy, obtener_cancelaciones_hoy, obtener_metricas_reservas
 from umai.utils import construir_error_api
+
 from umai.constants import ERROR_CODE_INTERNAL_SERVER
 
 metricas_bp = Blueprint('metricas', __name__)
@@ -55,3 +55,15 @@ def get_cancelaciones_hoy():
         )), 500
     return jsonify(cancelaciones), 200
 
+@metricas_bp.route('/reservas', methods=['GET'])
+def get_metricas_reservas():
+    try:
+        metricas = obtener_metricas_reservas()
+    except Exception as e:
+        return jsonify(construir_error_api(
+            code=ERROR_CODE_INTERNAL_SERVER,
+            message='error al procesar la solicitud',
+            description='Hubo un error interno'
+        )), 500
+        
+    return jsonify(metricas), 200

@@ -104,14 +104,25 @@ def get_3_reservas():
             'Error inesperado')
         ), 500
 
-@reservas_bp.route('/reservas/codigo/<string:uuid_codigo>', methods=['GET'])
+@reservas_bp.route('/codigo/<string:uuid_codigo>', methods=['GET'])
 def obtener_reserva(uuid_codigo):
-    reserva = obtener_reservas_codigo(uuid_codigo)
+    
 
-    if reserva:
-        return jsonify(reserva), 200
-    else:
-        return jsonify({"error": "No existe el código de reserva"}), 404
+    try:
+        reserva = obtener_reservas_codigo(uuid_codigo)
+    except Exception as e:
+        return jsonify(construir_error_api(
+            ERROR_CODE_INTERNAL_SERVER, 
+            'Error al acceder a la base de datos', 
+            'No se pudieron obtener las reservas')
+        ), 500
+    if not reserva:
+        return jsonify(construir_error_api(
+            code='not_found.reserva',
+            message='Reserva no encontrada',
+            description=f"No existe una reserva con el código '{uuid_codigo}'"
+        )), 404
+    return jsonify(reserva), 200
 
 @reservas_bp.route('/disponibilidad', methods=['GET'])
 def get_disponibilidad():

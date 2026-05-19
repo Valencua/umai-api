@@ -3,43 +3,62 @@ from umai.utils import construir_error_api
 from umai.services.reseñas import actualizar_estado_reseña, listar_reseñas, validar_usuario_para_reseña, eliminar_reseña, crear_reseña
 from umai.validators.reseñas import validar_id_reseña, validar_crear_reseña
 
-from umai.constants import ERROR_CODE_NOT_FOUND, ERROR_CODE_INTERNAL_SERVER, ERROR_CODE_INVALID_BODY
+from umai.constants import ERROR_CODE_NOT_FOUND, ERROR_CODE_INTERNAL_SERVER, ERROR_CODE_INVALID_BODY, ERROR_CODE_CONFLICT
 
 reseñas_bp = Blueprint('reseñas', __name__)
 
-@reseñas_bp.route('/validar', methods=['GET'])
+@reseñas_bp.route('/validar', methods=['POST'])
 def puede_realizar_reseña():
-	data = request.get_json(silent=True) or {}
-	email = data.get('email')
-	fecha = data.get('fecha')
+    data = request.get_json(silent=True) or {}
+    email = data.get('email')
+    fecha = data.get('fecha')
 
-	if not email or not fecha:
-		return jsonify(construir_error_api(
-			code=ERROR_CODE_INVALID_BODY,
-			message='Faltan campos requeridos',
-			description='email y fecha son obligatorios'
-		)), 400
+    if not email or not fecha:
+        return jsonify(construir_error_api(
+            code=ERROR_CODE_INVALID_BODY,
+            message='Faltan campos requeridos',
+            description='email y fecha son obligatorios'
+        )), 400
 
-	try:
-		puede_reseñar = validar_usuario_para_reseña(email, fecha)
-	except ValueError as exc:
-		payload = exc.args[0] if exc.args else construir_error_api(
-			code=ERROR_CODE_INVALID_BODY,
-			message='Datos inválidos',
-			description='No se pudieron validar los parámetros enviados'
-		)
-		return jsonify(payload), 400
-	except Exception:
-		return jsonify(construir_error_api(
-			code=ERROR_CODE_INTERNAL_SERVER,
-			message='Error al validar la reserva',
-			description='Ocurrió un error inesperado durante la validación'
-		)), 500
+    try:
+        resultado_validacion = validar_usuario_para_reseña(email, fecha)
+        motivo = resultado_validacion.get('motivo')
 
-	return jsonify({
-		'puede_realizar_reseña': puede_reseñar,
-		'message': 'Validación completada',
-	}), 200
+        if motivo == 'usuario_no_encontrado':
+            return jsonify(construir_error_api(
+                code=ERROR_CODE_NOT_FOUND,
+                message='Usuario no encontrado',
+                description='No se encontró un usuario con el email proporcionado'
+            )), 404
+        if motivo == 'sin_reservas_confirmadas':
+            return jsonify(construir_error_api(
+                code=ERROR_CODE_NOT_FOUND,
+                message='No se encontraron reservas',
+                description='No se encontraron reservas para el usuario en la fecha proporcionada'
+            )), 404
+        if motivo == 'reseña_existente':
+            return jsonify(construir_error_api(
+                code=ERROR_CODE_CONFLICT,
+                message='Reseña ya existente',
+                description='Ya existe una reseña para el usuario en la fecha proporcionada'
+            )), 409
+    except ValueError as exc:
+        return jsonify(construir_error_api(
+            code=ERROR_CODE_INVALID_BODY,
+            message='Datos inválidos',
+            description='No se pudieron validar los parámetros enviados'
+        )), 400
+    except Exception:
+        return jsonify(construir_error_api(
+            code=ERROR_CODE_INTERNAL_SERVER,
+            message='Error al validar la reserva',
+            description='Ocurrió un error inesperado durante la validación'
+        )), 500
+
+    return jsonify({
+        'puede_realizar_reseña': resultado_validacion.get('puede_realizar_reseña', False),
+        'message': 'Validación completada',
+    }), 200
 
 @reseñas_bp.route('/', methods=['GET'])
 def get_reseñas():

@@ -1,42 +1,72 @@
 from db import supabase
-from datetime import datetime, timezone
-from umai.utils import formatear_rfc3339, a_utc, validar_email, validar_formato_fecha, construir_error_api
+from datetime import datetime
+from umai.utils import a_utc, validar_email, validar_formato_fecha, construir_error_api
 from umai.constants import FORMATO_FECHA, ESTADO_RESERVA_CONFIRMADO
 
 
 def validar_usuario_para_reseña(email, fecha):
-    email = validar_email(email)
+    email_validado = validar_email(email)
     fecha_validada = validar_formato_fecha(fecha, FORMATO_FECHA)
     fecha_busqueda = fecha_validada.strftime(FORMATO_FECHA)
 
     cliente_resp = (
         supabase.table('clientes')
         .select('cliente_id')
-        .eq('email', email)
+        .eq('email', email_validado)
         .limit(1)
         .execute()
     )
 
     if not cliente_resp.data:
-        return False
+        return {
+            'puede_realizar_reseña': False,
+            'motivo': 'usuario_no_encontrado'
+        }
 
     cliente_id = cliente_resp.data[0].get('cliente_id')
+
+    reseñas_iguales = (
+        supabase.table('reseñas')
+        .select('reseña_id')
+        .eq('cliente_id', cliente_id)
+        .eq('fecha', fecha_busqueda)
+        .limit(1)
+        .execute()
+    )
+
+    if reseñas_iguales.data:
+        return {
+            'puede_realizar_reseña': False,
+            'motivo': 'reseña_existente'
+        }
 
     reservas_resp = (
         supabase.table('reservas')
         .select('fecha', 'estado')
         .eq('cliente_id', cliente_id)
+        .eq('estado', ESTADO_RESERVA_CONFIRMADO)
         .execute()
     )
 
+    if not reservas_resp or not reservas_resp.data:
+        return {
+            'puede_realizar_reseña': False,
+            'motivo': 'sin_reservas_confirmadas'
+        }
+
     for reserva in reservas_resp.data:
         fecha_reserva = reserva.get('fecha')
-        estado_reserva = reserva.get('estado')
 
-        if str(fecha_reserva).startswith(fecha_busqueda) and estado_reserva == ESTADO_RESERVA_CONFIRMADO:
-            return True
+        if str(fecha_reserva).startswith(fecha_busqueda):
+            return {
+                'puede_realizar_reseña': True,
+                'motivo': None
+            }
 
-    return False
+    return {
+        'puede_realizar_reseña': False,
+        'motivo': 'sin_reservas_confirmadas'
+    }
 
 def listar_reseñas(estado: bool)-> list:
     respuesta = (

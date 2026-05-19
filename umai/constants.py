@@ -25,10 +25,17 @@ ESTADO_RESERVA_PENDIENTE = 'pendiente'
 ESTADO_RESERVA_CONFIRMADO = 'confirmado' 
 ESTADO_RESERVA_CANCELADO = 'cancelado' 
 
+USUARIO_MIN = 3
+USUARIO_MAX = 50
+CONTRASENA_MIN = 6
+CONTRASENA_MAX = 100
+
 ERROR_CODE_INVALID_BODY = 'invalid.body'
 ERROR_CODE_INTERNAL_SERVER     = 'server.error'
 ERROR_CODE_INVALID_MIN_VALUE = 'invalid.min.value'
 ERROR_CODE_INVALID_MAX_VALUE = 'invalid.max.value'
+ERROR_CODE_MISSING_FIELDS = 'invalid.missing.fields'
+ERROR_CODE_UNAUTHORIZED = 'auth.unauthorized'
 ERROR_CODE_TURNO_LLENO = 'turno.lleno'
 ERROR_CODE_RESERVA_ACTIVA = 'reserva.activa'
 

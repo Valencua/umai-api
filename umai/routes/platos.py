@@ -1,7 +1,8 @@
 from flask import Blueprint, jsonify, request
 
 from umai.validators.platos import validar_crear_plato
-from umai.services.platos import crear_plato
+from umai.services.platos import crear_plato, traer_todos_los_platos
+from umai.utils import construir_error_api
 
 platos_bp = Blueprint('platos', __name__)
 
@@ -35,3 +36,22 @@ def post_plato():
         }), 500
 
     return jsonify(plato), 201
+
+@platos_bp.route('/', methods=['GET'])
+def listar_platos():
+    try:
+        platos = traer_todos_los_platos()
+        return jsonify({
+            'data': platos, 
+            'status': 'success'
+        }), 200
+    
+    except Exception:
+        return jsonify(construir_error_api(
+            'LIST_ERROR', 
+            'Error listando platos', 
+            'Error inesperado')
+            ), 500
+
+
+

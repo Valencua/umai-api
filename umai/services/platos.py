@@ -1,4 +1,4 @@
-from db.supabase_client import supabase
+from db import supabase
 
 
 def crear_plato(data: dict) -> dict:
@@ -113,3 +113,12 @@ def crear_plato(data: dict) -> dict:
         ])
 
     return plato
+
+def traer_todos_los_platos():
+    platos_resp = (
+        supabase.table('platos')
+        .select('*')
+        .execute()
+    )
+    return platos_resp.data
+

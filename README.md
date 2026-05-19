@@ -10,9 +10,9 @@ pedidos, productos, mesas, métricas y administración.
 ---
 
 ![Python](https://img.shields.io/badge/Python-3.11-blue?style=for-the-badge&logo=python)
-![FastAPI](https://img.shields.io/badge/FastAPI-Backend-009688?style=for-the-badge&logo=fastapi)
+
 ![Supabase](https://img.shields.io/badge/Supabase-Database-3ECF8E?style=for-the-badge&logo=supabase)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Database-316192?style=for-the-badge&logo=postgresql)
+
 
 </div>
 
@@ -23,7 +23,6 @@ pedidos, productos, mesas, métricas y administración.
 ✅ Gestión de pedidos  
 ✅ Gestión de productos  
 ✅ Métricas y reportes  
-✅ API REST escalable  
 ✅ Integración con Supabase  
 
 ---
@@ -33,10 +32,11 @@ pedidos, productos, mesas, métricas y administración.
 | Tecnología | Uso |
 |---|---|
 | Python | Backend |
-| FastAPI | Framework API |
+| Flask | Framework API |
 | Supabase | Base de datos y servicios |
 | PostgreSQL | Persistencia de datos |
 | Git/GitHub | Control de versiones |
+
 
 ---
 

@@ -20,7 +20,7 @@ def obtener_disponibilidad(fecha: str):
     try:
         fecha_obj = datetime.strptime(
             fecha, '%Y-%m-%d'
-            ).date()
+        ).date()
         
     except ValueError:
 
@@ -43,38 +43,37 @@ def obtener_disponibilidad(fecha: str):
 
     for horario in HORARIOS_DISPONIBLES:
 
-         fecha_local = datetime.strptime(
-         f'{fecha} {horario}',
-         '%Y-%m-%d %H:%M'
-         ).replace(tzinfo=TZ_LOCAL)
+        fecha_local = datetime.strptime(
+        f'{fecha} {horario}',
+        '%Y-%m-%d %H:%M'
+        ).replace(tzinfo=TZ_LOCAL)
 
-         fecha_utc = a_utc(fecha_local)
+        fecha_utc = a_utc(fecha_local)
         
         fecha_hora = fecha_utc.isoformat().replace(
             '+00:00',
             'Z'
         )
         
-         response = (
-              supabase
-              .table('reservas')
-              .select('cantidad_personas')
-              .select('cantidad_personas')
-              .eq('fecha', fecha_hora)
-              .neq('estado', ESTADO_RESERVA_CANCELADO)
-              .execute()
+        response = (
+            supabase
+            .table('reservas')
+            .select('cantidad_personas')
+            .eq('fecha', fecha_hora)
+            .neq('estado', ESTADO_RESERVA_CANCELADO)
+            .execute()
         )
          
-    personas_reservadas = sum(
+        personas_reservadas = sum(
             reserva['cantidad_personas']
             for reserva in response.data
         )
-    
-    lugares_disponibles = (
+        
+        lugares_disponibles = (
             CAPACIDAD_MAXIMA_PERSONAS_POR_TURNO - personas_reservadas
         )
-    
-    disponibilidad.append({
+        
+        disponibilidad.append({
             'horario': horario,
             'lugares_disponibles': lugares_disponibles,
             'disponible': lugares_disponibles > 0

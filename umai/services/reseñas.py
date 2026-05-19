@@ -1,9 +1,8 @@
 import logging
 from db import supabase
+
 from umai.constants import FORMATO_FECHA, ESTADO_RESERVA_CONFIRMADO
 from umai.utils import validar_email, validar_formato_fecha
-
-
 
 def validar_usuario_para_reseña(email, fecha):
     email = validar_email(email)
@@ -38,3 +37,14 @@ def validar_usuario_para_reseña(email, fecha):
             return True
 
     return False
+
+def listar_reseñas(estado: bool)-> list:
+    respuesta = (
+        supabase.table('reseñas')
+        .select('reseña_id, descripcion, rating, creado_en, clientes(nombre)')
+        .eq('estado', estado)
+        .order('creado_en', desc=True)
+        .execute()
+    )
+    return respuesta.data
+

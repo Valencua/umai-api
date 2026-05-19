@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime, timezone
 
 from db import supabase
-from umai.constants import (
+from umai.constants import ( 
     CAPACIDAD_MAXIMA_PERSONAS_POR_TURNO,
     ERROR_CODE_RESERVA_ACTIVA,
     ERROR_CODE_TURNO_LLENO,
@@ -13,9 +13,11 @@ from umai.constants import (
     ESTADO_RESERVA_CONFIRMADO,
     ERROR_CODE_RESERVA_CANCELADA,
     FORMATO_FECHA, 
-    FORMATO_HORARIO
+    FORMATO_HORARIO,
+    HORARIOS_DISPONIBLES
 )
-from umai.utils import a_local, construir_error_api, formatear_rfc3339
+
+from umai.utils import a_local, a_utc, construir_error_api, formatear_rfc3339, TZ_LOCAL
 
 logger = logging.getLogger(__name__)
 
@@ -238,4 +240,65 @@ def obtener_reservas_codigo(uuid_codigo):
         return respuesta.data[0]
     
     return None
+
+def obtener_disponibilidad(fecha: str):
+    try:
+        fecha_obj = datetime.strptime(
+            fecha, '%Y-%m-%d'
+        ).date()
+        
+    except ValueError:
+
+            raise ValueError(construir_error_api(
+                code='invalid.fecha',
+                message='Fecha inválida',
+                description='La fecha debe tener formato YYYY-MM-DD'
+            ))
+
+    hoy = datetime.now(timezone.utc).date()
+
+    if fecha_obj < hoy:
+
+        raise ValueError(construir_error_api(
+            code='invalid.fecha.pasada',
+            message='Fecha inválida',
+            description='No se puede consultar disponibilidad para fechas pasadas'
+        ))
+    disponibilidad = []
+
+    for horario in HORARIOS_DISPONIBLES:
+
+        fecha_local = datetime.strptime(
+        f'{fecha} {horario}',
+        '%Y-%m-%d %H:%M'
+        ).replace(tzinfo=TZ_LOCAL)
+
+        fecha_utc = a_utc(fecha_local)
+        
+        fecha_hora = fecha_utc.isoformat().replace('+00:00','Z')
+        
+        response = (
+            supabase
+            .table('reservas')
+            .select('cantidad_personas')
+            .eq('fecha', fecha_hora)
+            .neq('estado', ESTADO_RESERVA_CANCELADO)
+            .execute()
+        )
+         
+        personas_reservadas = sum(
+            reserva['cantidad_personas']
+            for reserva in response.data
+        )
+        
+        lugares_disponibles = (
+            CAPACIDAD_MAXIMA_PERSONAS_POR_TURNO - personas_reservadas
+        )
+        
+        disponibilidad.append({
+            'horario': horario,
+            'lugares_disponibles': lugares_disponibles,
+            'disponible': lugares_disponibles > 0
+        })
+    return disponibilidad
 

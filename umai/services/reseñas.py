@@ -1,7 +1,6 @@
-<<<<<<< HEAD
 from db import supabase
 from datetime import datetime, timezone
-from umai.utils import formatear_rfc3339, a_utc, validar_email, validar_formato_fecha
+from umai.utils import formatear_rfc3339, a_utc, validar_email, validar_formato_fecha, construir_error_api
 from umai.constants import FORMATO_FECHA, ESTADO_RESERVA_CONFIRMADO
 
 
@@ -75,4 +74,27 @@ def crear_reseña(data: dict):
         .execute()
     )
     return respuesta.data[0]
+
+def actualizar_estado_reseña(reseña_id: int, nuevo_estado: bool) -> dict:
+    existente = (
+        supabase.table('reseñas')
+        .select('reseña_id')
+        .eq('reseña_id', reseña_id)
+        .execute()
+    )
+        
+    if not existente.data:
+        raise ValueError(construir_error_api(
+            code='not_found.reseña',
+            message="reseña no encontrada",
+            description=f"No se encontró ningúna reseña con el ID {reseña_id}"
+        ), 404)
+
+    response = (
+        supabase.table('reseñas')
+        .update({'estado': nuevo_estado})
+        .eq('reseña_id', reseña_id)
+        .execute()
+    )
+    return response.data[0]
 

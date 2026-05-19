@@ -1,14 +1,13 @@
 from flask import Blueprint, jsonify, request
-
-from umai.services.reseñas import listar_reseñas, validar_usuario_para_reseña, eliminar_reseña, crear_reseña
 from umai.utils import construir_error_api
+from umai.services.reseñas import actualizar_estado_reseña, listar_reseñas, validar_usuario_para_reseña, eliminar_reseña, crear_reseña
 from umai.validators.reseñas import validar_id_reseña, validar_crear_reseña
 
 from umai.constants import ERROR_CODE_NOT_FOUND, ERROR_CODE_INTERNAL_SERVER, ERROR_CODE_INVALID_BODY
 
 reseñas_bp = Blueprint('reseñas', __name__)
 
-@reseñas_bp.route('/', methods=['GET'])
+@reseñas_bp.route('/validar', methods=['GET'])
 def puede_realizar_reseña():
 	data = request.get_json(silent=True) or {}
 	email = data.get('email')
@@ -129,3 +128,24 @@ def post_reseña():
             description='Ocurrio un error inesperado'
         )), 500
 
+@reseñas_bp.route('/<id>', methods=['PATCH'])
+def patch_estado_reseña(id):
+
+    body = request.get_json(silent=True)
+
+    if body is None:
+        return jsonify(construir_error_api(
+            code=ERROR_CODE_INVALID_BODY,
+            message='Cuerpo de la solicitud invalido',
+            description='El cuerpo debe ser un JSON valido con COntent-Type application/json'
+        )), 400
+
+    try:
+        reseña_actualizada = actualizar_estado_reseña(id, body['estado'])
+    except Exception as error:
+        return jsonify(construir_error_api(
+            code=ERROR_CODE_INTERNAL_SERVER,
+            message='Error al actualizar la reseña',
+            description=str(error)
+        )), 500
+    return jsonify(reseña_actualizada),200

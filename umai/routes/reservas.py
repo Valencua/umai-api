@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, request
 from umai.utils import construir_error_api
 from umai.constants import ERROR_CODE_INVALID_BODY, ERROR_CODES_CONFLICTO, ERROR_CODE_INTERNAL_SERVER, ERROR_CODE_RESERVA_NO_ENCONTRADA
-from umai.services.reservas import crear_reserva, confirmar_asistencia_por_codigo, get_top3_reservas, obtener_reservas
+from umai.services.reservas import crear_reserva, confirmar_asistencia_por_codigo, get_top3_reservas, obtener_reservas, obtener_reservas_codigo
 from umai.utils import construir_error_api
 from umai.validators.reservas import validar_crear_reserva, validar_uuid_codigo
 
@@ -103,4 +103,13 @@ def get_3_reservas():
             'Error listando las 3 reservas más recientes', 
             'Error inesperado')
         ), 500
+
+@reservas_bp.route('/reservas/codigo/<string:uuid_codigo>', methods=['GET'])
+def obtener_reserva(uuid_codigo):
+    reserva = obtener_reservas_codigo(uuid_codigo)
+
+    if reserva:
+        return jsonify(reserva), 200
+    else:
+        return jsonify({"error": "No existe el código de reserva"}), 404
 

@@ -230,3 +230,12 @@ def get_top3_reservas():
 
     return reservas_recientes.data
 
+def obtener_reservas_codigo(uuid_codigo):
+
+    respuesta = supabase.table('reservas').select('*,cliente(*)').eq('uuid_codigo', uuid_codigo).execute()
+
+    if len(respuesta.data) > 0:
+        return respuesta.data[0]
+    
+    return None
+

@@ -1,7 +1,9 @@
+<<<<<<< HEAD
 from db import supabase
-
+from datetime import datetime, timezone
+from umai.utils import formatear_rfc3339, a_utc, validar_email, validar_formato_fecha
 from umai.constants import FORMATO_FECHA, ESTADO_RESERVA_CONFIRMADO
-from umai.utils import validar_email, validar_formato_fecha
+
 
 def validar_usuario_para_reseña(email, fecha):
     email = validar_email(email)
@@ -47,7 +49,6 @@ def listar_reseñas(estado: bool)-> list:
     )
     return respuesta.data
 
-
 def eliminar_reseña(reseña_id: int):
     try:
         respuesta = (supabase.table('reseñas').delete().eq('reseña_id', reseña_id).execute())
@@ -60,4 +61,18 @@ def eliminar_reseña(reseña_id: int):
     except Exception as e:
         print(f"Error al eliminar reseña: {str(e)}")
         return None
+
+def crear_reseña(data: dict):
+    respuesta = (
+        supabase.table('reseñas')
+        .insert({
+            'cliente_id': data['cliente_id'],
+            'descripcion': data['descripcion'],
+            'rating': data['rating'],
+            'estado': False,
+            'creado_en': a_utc(datetime.now()).replace(microsecond=0).isoformat().replace('+00:00', 'Z')
+        })
+        .execute()
+    )
+    return respuesta.data[0]
 

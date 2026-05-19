@@ -1,7 +1,6 @@
 from flask import Blueprint, jsonify
-from umai.services.metricas import obtener_rating_promedio, obtener_reservas_hoy, obtener_cancelaciones_hoy, obtener_metricas_reservas
+from umai.services.metricas import obtener_rating_promedio, obtener_reservas_hoy, obtener_cancelaciones_hoy, obtener_metricas_reservas, obtener_personas_hoy
 from umai.utils import construir_error_api
-
 from umai.constants import ERROR_CODE_INTERNAL_SERVER
 
 metricas_bp = Blueprint('metricas', __name__)
@@ -67,3 +66,26 @@ def get_metricas_reservas():
         )), 500
         
     return jsonify(metricas), 200
+
+@metricas_bp.route('/personas-hoy', methods=['GET'])
+def obtener_personas_hoy():
+    try:
+        personas = obtener_personas_hoy()
+        if personas is None:
+            return jsonify(construir_error_api(
+                code=ERROR_CODE_INTERNAL_SERVER,
+                message='Error al obtener personas',
+                description='Ocurrió un error al intentar obtener las personas para hoy'
+            )), 500
+
+        return jsonify({
+            'data': personas,
+            'status': 'success'
+        }), 200
+    except Exception as e:
+        return jsonify(construir_error_api(
+            code=ERROR_CODE_INTERNAL_SERVER,
+            message='Error al obtener personas',
+            description='Ocurrió un error al intentar obtener las personas para hoy'
+        )), 500
+

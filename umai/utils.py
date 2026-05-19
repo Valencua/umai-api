@@ -30,7 +30,6 @@ TZ_LOCAL = ZoneInfo(TZ_LOCAL_NAME)
 EMAIL_RE = re.compile(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
 TELEFONO_RE = re.compile(r'^\+?[\d\s\-().]+$')
 
-
 def construir_error_api(code: str, message: str, description: str, level: str = 'error') -> dict:
     return {
         'errors': [{
@@ -40,7 +39,6 @@ def construir_error_api(code: str, message: str, description: str, level: str = 
             'description': description
         }]
     }
-
 
 def validar_longitud(valor: str, campo: str, min: int = None, max: int = None) -> None:
     errores = []

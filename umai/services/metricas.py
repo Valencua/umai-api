@@ -43,3 +43,17 @@ def obtener_reservas_hoy():
     except Exception:
         return None
 
+def obtener_cancelaciones_hoy() -> dict:
+    ahora = a_utc(datetime.now())
+    inicio_dia = ahora.replace(hour=0, minute=0, second=0, microsecond=0)
+    fin_dia    = inicio_dia + timedelta(days=1)
+
+    response = supabase.table('reservas') \
+        .select('reserva_id') \
+        .eq('estado', 'cancelado') \
+        .gte('fecha', inicio_dia.isoformat()) \
+        .lt('fecha', fin_dia.isoformat()) \
+        .execute()
+
+    return {'cancelaciones': len(response.data)}
+

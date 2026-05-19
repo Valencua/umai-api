@@ -2,11 +2,10 @@
 Para manejar las excepciones, errores, etc. (Más que nada lo vamos a utilizar
 para utilizarlo como handler global)
 """
-
 import logging
 import re
 from datetime import datetime, timezone
-from re import sub
+#from re import sub
 from zoneinfo import ZoneInfo
 
 from umai.constants import (
@@ -30,7 +29,6 @@ TZ_LOCAL = ZoneInfo(TZ_LOCAL_NAME)
 EMAIL_RE = re.compile(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
 TELEFONO_RE = re.compile(r'^\+?[\d\s\-().]+$')
 
-
 def construir_error_api(code: str, message: str, description: str, level: str = 'error') -> dict:
     return {
         'errors': [{
@@ -40,7 +38,6 @@ def construir_error_api(code: str, message: str, description: str, level: str = 
             'description': description
         }]
     }
-
 
 def validar_longitud(valor: str, campo: str, min: int = None, max: int = None) -> None:
     errores = []
@@ -61,7 +58,6 @@ def validar_longitud(valor: str, campo: str, min: int = None, max: int = None) -
 
     if errores:
         raise ValueError({'errors': errores})
-
 
 def validar_formato_fecha(fecha: str, formato: str, nombre: str = 'fecha') -> datetime:
     try:
@@ -187,6 +183,7 @@ def horario_en_rango_servicio(hora: int, minuto: int) -> bool:
 
 def fecha_hora_futura(dt_local: datetime) -> bool:
     return dt_local >= datetime.now(TZ_LOCAL)
+
 
 def validar_solo_letras(valor: str, campo: str) -> None:
     if not re.match(r'^[a-zA-Z\s]+$', valor):

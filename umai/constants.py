@@ -1,5 +1,4 @@
 """Constantes globales del back"""
-
 TZ_LOCAL_NAME = 'America/Argentina/Buenos_Aires'
 
 FORMATO_FECHA = '%Y-%m-%d'
@@ -34,3 +33,4 @@ ERROR_CODE_RESERVA_ACTIVA = 'reserva.activa'
 
 
 ERROR_CODES_CONFLICTO = (ERROR_CODE_TURNO_LLENO, ERROR_CODE_RESERVA_ACTIVA)
+

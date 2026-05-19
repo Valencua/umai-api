@@ -15,6 +15,5 @@ app.register_blueprint(reservas_bp, url_prefix="/reservas")
 app.register_blueprint(reseñas_bp, url_prefix="/reseñas")
 app.register_blueprint(servicios_bp, url_prefix="/servicios")
 
-
 if __name__ == "__main__":
     app.run(port=5000, debug=True)

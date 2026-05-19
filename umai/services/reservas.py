@@ -12,6 +12,8 @@ from umai.constants import (
     ERROR_CODE_RESERVA_NO_ENCONTRADA,
     ESTADO_RESERVA_CONFIRMADO,
     ERROR_CODE_RESERVA_CANCELADA,
+    FORMATO_FECHA, 
+    FORMATO_HORARIO
 )
 from umai.utils import a_local, construir_error_api, formatear_rfc3339
 
@@ -204,4 +206,27 @@ def obtener_reservas():
             reserva['fecha'] = a_local(fecha)
 
     return reservas.data
+
+def get_top3_reservas():
+    reservas_recientes = (
+        supabase.table('reservas')
+        .select('*')
+        .order('reserva_id', desc=True)
+        .limit(3)
+        .execute()
+    )
+
+    for reserva in reservas_recientes.data:
+        fecha = reserva.get('fecha')
+        
+        if fecha:
+            if isinstance(fecha, str):
+                fecha_dt = datetime.fromisoformat(fecha.replace('Z', '+00:00'))
+            else:
+                fecha_dt = fecha
+            fecha_local = a_local(fecha_dt)
+            reserva['fecha'] = formatear_rfc3339(fecha_local)
+            reserva['fecha'] = fecha_local.strftime(f"{FORMATO_FECHA} {FORMATO_HORARIO}")
+
+    return reservas_recientes.data
 

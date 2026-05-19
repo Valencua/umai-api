@@ -1,5 +1,4 @@
 from flask import Blueprint, jsonify
-
 from umai.services.metricas import obtener_rating_promedio, obtener_reservas_hoy, obtener_cancelaciones_hoy, obtener_metricas_reservas, obtener_personas_hoy, obtener_reservas_semanal
 from umai.utils import construir_error_api
 from umai.constants import ERROR_CODE_INTERNAL_SERVER
@@ -16,25 +15,22 @@ def get_rating_promedio():
             message='error al procesar la solicitud',
             description='Hubo un error interno'
         )), 500
-
     return jsonify(metricas), 200
 
 
-
 @metricas_bp.route('/reservas-hoy', methods=['GET'])
-def obtener_reservas_hoy():
+def get_reservas_hoy():
     try:
-        reservas = obtener_reservas_hoy()
-
-        if reservas is None:
-            return jsonify(construir_error_api(
-                code=ERROR_CODE_INTERNAL_SERVER,
-                message='Error al obtener reservas',
-                description='Ocurrió un error al intentar obtener las reservas para hoy'
-            )), 500
+        reservas_cantidad = obtener_reservas_hoy()
+        if reservas_cantidad is None:
+            return jsonify({
+                'data': 0,
+                'message': 'No hay reservas para hoy',
+                'status': 'success'
+            }), 200
 
         return jsonify({
-            'data': reservas,
+            'data': reservas_cantidad,
             'status': 'success'
         }), 200
     except Exception:
@@ -70,16 +66,9 @@ def get_metricas_reservas():
     return jsonify(metricas), 200
 
 @metricas_bp.route('/personas-hoy', methods=['GET'])
-def obtener_personas_hoy():
+def get_personas_hoy():
     try:
         personas = obtener_personas_hoy()
-        if personas is None:
-            return jsonify(construir_error_api(
-                code=ERROR_CODE_INTERNAL_SERVER,
-                message='Error al obtener personas',
-                description='Ocurrió un error al intentar obtener las personas para hoy'
-            )), 500
-
         return jsonify({
             'data': personas,
             'status': 'success'

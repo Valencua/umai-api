@@ -1,7 +1,9 @@
+
 from db import supabase
 from datetime import datetime, timezone, timedelta
 from umai.utils import a_utc, TZ_LOCAL
-from umai.constants import ESTADO_RESERVA_PENDIENTE
+from umai.constants import ESTADO_RESERVA_PENDIENTE, ESTADO_RESERVA_CONFIRMADO, FORMATO_FECHA
+
 
 def obtener_rating_promedio() -> dict:
     response = supabase.table('reseñas') \
@@ -113,4 +115,22 @@ def obtener_personas_hoy():
         return personas_hoy
     except Exception:
         return None
+
+def obtener_reservas_semanal() -> list:
+    hoy = datetime.now(timezone.utc)
+    hace_siete_dias = hoy - timedelta(days=7)
+
+    hoy_str = hoy.strftime(FORMATO_FECHA)
+    hace_siete_dias_str = hace_siete_dias.strftime(FORMATO_FECHA)
+
+    response = (
+        supabase.table('reservas') 
+        .select('*') 
+        .eq('estado', ESTADO_RESERVA_CONFIRMADO) 
+        .gte('fecha', hace_siete_dias_str) 
+        .lte('fecha', hoy_str)
+        .execute()
+    )
+
+    return response.data if response.data else []
 

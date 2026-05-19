@@ -185,3 +185,23 @@ def confirmar_asistencia_por_codigo(uuid_codigo: str) -> dict:
     }).eq('uuid_codigo', uuid_codigo).execute()
 
     return _serializar_reserva(actualizado.data[0], datos_cliente)
+
+def obtener_reservas():
+    reservas = (
+        supabase.table('reservas')
+        .select('*')
+        .order('reserva_id', desc=True)
+        .execute()
+    )
+
+    for reserva in reservas.data:
+        fecha = reserva.get('fecha')
+        
+        if isinstance(fecha, str):
+            fecha = datetime.fromisoformat(fecha.replace('Z', '+00:00'))
+
+        if isinstance(fecha, datetime):
+            reserva['fecha'] = a_local(fecha)
+
+    return reservas.data
+

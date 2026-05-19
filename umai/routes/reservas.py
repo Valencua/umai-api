@@ -1,4 +1,7 @@
 from flask import Blueprint, jsonify, request
+from umai.utils import construir_error_api
+from umai.constants import ERROR_CODE_INTERNAL_SERVER
+from umai.services.reservas import obtener_reservas
 
 from umai.constants import ERROR_CODE_INVALID_BODY, ERROR_CODES_CONFLICTO, ERROR_CODE_INTERNAL_SERVER, ERROR_CODE_RESERVA_NO_ENCONTRADA
 from umai.services.reservas import crear_reserva, confirmar_asistencia_por_codigo
@@ -56,3 +59,29 @@ def patch_confirmar_asistencia(uuid_codigo):
             message='error al procesar la solicitud',
             description='Hubo un error interno'
         )), 500
+
+@reservas_bp.route('/reservas-historial', methods=['GET'])
+def get_reservas():
+    try:
+        reservas = obtener_reservas()
+        if(reservas is None):
+            return jsonify(construir_error_api(
+                code='not_found.reservas.empty',
+                message="No se encontraron reservas",
+                description="No existen reservas registradas en la base de datos actualmente."
+            )), 404
+
+        return jsonify(
+            {
+                'data': reservas, 
+                'status': 'success'}
+            ), 200
+    
+    except Exception:
+        return jsonify(construir_error_api(
+            ERROR_CODE_INTERNAL_SERVER, 
+            'Error listando las reservas', 
+            'Error inesperado')
+        ), 500
+    
+

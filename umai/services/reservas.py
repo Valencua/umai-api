@@ -202,11 +202,14 @@ def obtener_reservas():
     for reserva in reservas.data:
         fecha = reserva.get('fecha')
         
-        if isinstance(fecha, str):
-            fecha = datetime.fromisoformat(fecha.replace('Z', '+00:00'))
-
-        if isinstance(fecha, datetime):
-            reserva['fecha'] = a_local(fecha)
+        if fecha:
+            if isinstance(fecha, str):
+                fecha_dt = datetime.fromisoformat(fecha.replace('Z', '+00:00'))
+            else:
+                fecha_dt = fecha
+            fecha_local = a_local(fecha_dt)
+            reserva['fecha'] = formatear_rfc3339(fecha_local)
+            reserva['fecha'] = fecha_local.strftime(f"{FORMATO_FECHA} {FORMATO_HORARIO}")
 
     return reservas.data
 

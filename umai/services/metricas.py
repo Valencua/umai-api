@@ -1,7 +1,7 @@
 
 from db import supabase
 from datetime import datetime, timezone, timedelta
-from umai.utils import a_utc, TZ_LOCAL
+from umai.utils import a_utc, TZ_LOCAL, a_local
 from umai.constants import ESTADO_RESERVA_PENDIENTE, ESTADO_RESERVA_CONFIRMADO, FORMATO_FECHA
 
 def obtener_rating_promedio() -> dict:
@@ -39,15 +39,17 @@ def obtener_reservas_hoy():
     return len(response.data)
 
 def obtener_cancelaciones_hoy() -> dict:
-    ahora = a_utc(datetime.now())
-    inicio_dia = ahora.replace(hour=0, minute=0, second=0, microsecond=0)
-    fin_dia    = inicio_dia + timedelta(days=1)
+    ahora = a_local(datetime.now())
+    inicio_dia_local = ahora.replace(hour=0, minute=0, second=0, microsecond=0)
+    fin_dia_local    = inicio_dia_local + timedelta(days=1)
 
+    inicio_utc = a_utc(inicio_dia_local)
+    fin_utc    = a_utc(fin_dia_local)
     response = supabase.table('reservas') \
         .select('reserva_id') \
         .eq('estado', 'cancelado') \
-        .gte('fecha', inicio_dia.isoformat()) \
-        .lt('fecha', fin_dia.isoformat()) \
+        .gte('fecha', inicio_utc.isoformat()) \
+        .lt('fecha', fin_utc.isoformat()) \
         .execute()
 
     return {'cancelaciones': len(response.data)}

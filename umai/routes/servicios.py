@@ -71,6 +71,8 @@ def patch_estado_servicio(id):
 
     try:
         servicio_actualizado = actualizar_estado_servicio(id, body['estado'])
+    except ValueError as e:
+        return jsonify(e.args[0]), 400
     except Exception as error:
         return jsonify(construir_error_api(
             code=ERROR_CODE_INTERNAL_SERVER,

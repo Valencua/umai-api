@@ -41,6 +41,7 @@ ERROR_CODE_RESERVA_ACTIVA = 'reserva.activa'
 ERROR_CODE_NOT_FOUND = 'not.found'
 ERROR_CODE_CONFLICT = 'conflict'
 
+
 ERROR_CODE_PLATO_DUPLICADO = 'plato.duplicado'
 
 ERROR_CODE_UUID_CODIGO_INVALIDO = 'invalid.uuid_codigo.format'
@@ -56,3 +57,4 @@ MAX_FOTO_BYTES = 5 * 1024 * 1024
 HORARIOS_DISPONIBLES = [
     '18:30','19:00','19:30','20:00', '20:30', '21:00', '21:30', '22:00', '22:30', '23:00', '23:30', '00:00', '00:30', '01:00'   
 ]
+

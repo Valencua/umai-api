@@ -5,7 +5,7 @@ para utilizarlo como handler global)
 import logging
 import re
 from datetime import datetime, timezone
-#from re import sub
+from re import sub
 from zoneinfo import ZoneInfo
 
 from umai.constants import (

@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify, request
 from umai.services.platos import eliminar_plato, traer_todos_los_platos, crear_plato
-from umai.utils import construir_error_api, validar_entero, validar_crear_plato
+from umai.utils import construir_error_api, validar_entero
+from umai.validators.platos import validar_crear_plato
 
 from umai.constants import (
     ERROR_CODES_CONFLICTO,
@@ -8,7 +9,7 @@ from umai.constants import (
 )
 
 
-platos_bp = Blueprint('platos', name)
+platos_bp = Blueprint('platos', __name__)
 
 
 @platos_bp.route('/', methods=['POST'])

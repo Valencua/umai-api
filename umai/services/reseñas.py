@@ -1,13 +1,17 @@
 from db import supabase
 from datetime import datetime
-from umai.utils import a_utc, validar_email, validar_formato_fecha, construir_error_api
+from umai.utils import a_utc, validar_email, validar_formato_fecha, construir_error_api, TZ_LOCAL
 from umai.constants import FORMATO_FECHA, ESTADO_RESERVA_CONFIRMADO
 
 
 def validar_usuario_para_reseña(email, fecha):
     email_validado = validar_email(email)
     fecha_validada = validar_formato_fecha(fecha, FORMATO_FECHA)
-    fecha_busqueda = fecha_validada.strftime(FORMATO_FECHA)
+    
+    # Convertir fecha local a UTC para comparar con BD
+    fecha_dt_local = datetime.combine(fecha_validada.date(), datetime.min.time(), tzinfo=TZ_LOCAL)
+    fecha_utc = a_utc(fecha_dt_local)
+    fecha_utc_str = fecha_utc.isoformat().replace('+00:00', 'Z')[:10]  # Obtener solo la parte de fecha en UTC
 
     cliente_resp = (
         supabase.table('clientes')
@@ -25,47 +29,51 @@ def validar_usuario_para_reseña(email, fecha):
 
     cliente_id = cliente_resp.data[0].get('cliente_id')
 
-    reseñas_iguales = (
+    reseñas_resp = (
         supabase.table('reseñas')
-        .select('reseña_id')
+        .select('reseña_id', count='exact')
         .eq('cliente_id', cliente_id)
-        .eq('fecha', fecha_busqueda)
-        .limit(1)
         .execute()
     )
+    cantidad_reseñas = len(reseñas_resp.data)
 
-    if reseñas_iguales.data:
-        return {
-            'puede_realizar_reseña': False,
-            'motivo': 'reseña_existente'
-        }
-
+    # Contar reservas confirmadas del cliente
     reservas_resp = (
         supabase.table('reservas')
-        .select('fecha', 'estado')
+        .select('fecha', 'estado', count='exact')
         .eq('cliente_id', cliente_id)
         .eq('estado', ESTADO_RESERVA_CONFIRMADO)
         .execute()
     )
+    cantidad_reservas = len(reservas_resp.data)
 
+    # si no tiene reservas directamente....
     if not reservas_resp or not reservas_resp.data:
         return {
             'puede_realizar_reseña': False,
             'motivo': 'sin_reservas_confirmadas'
         }
 
+    if cantidad_reseñas >= cantidad_reservas:
+        return {
+            'puede_realizar_reseña': False,
+            'motivo': 'reseña_existente'
+        }
+
+    fecha_encontrada = False
     for reserva in reservas_resp.data:
         fecha_reserva = reserva.get('fecha')
-
-        if str(fecha_reserva).startswith(fecha_busqueda):
-            return {
-                'puede_realizar_reseña': True,
-                'motivo': None
-            }
-
+        if fecha_reserva and str(fecha_reserva).startswith(fecha_utc_str):
+            fecha_encontrada = True
+            break
+    if not fecha_encontrada:
+        return {
+            'puede_realizar_reseña': False,
+            'motivo': 'sin_reservas_confirmadas'
+        }
     return {
-        'puede_realizar_reseña': False,
-        'motivo': 'sin_reservas_confirmadas'
+        'puede_realizar_reseña': True,
+        'motivo': None
     }
 
 def listar_reseñas(estado: bool)-> list:

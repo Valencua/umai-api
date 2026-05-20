@@ -11,17 +11,16 @@ reseñas_bp = Blueprint('reseñas', __name__)
 def puede_realizar_reseña():
     data = request.get_json(silent=True) or {}
     email = data.get('email')
-    fecha = data.get('fecha')
 
-    if not email or not fecha:
+    if not email:
         return jsonify(construir_error_api(
             code=ERROR_CODE_INVALID_BODY,
-            message='Faltan campos requeridos',
-            description='email y fecha son obligatorios'
+            message='Falta campo requerido',
+            description='email es obligatorio'
         )), 400
 
     try:
-        resultado_validacion = validar_usuario_para_reseña(email, fecha)
+        resultado_validacion = validar_usuario_para_reseña(email)
         motivo = resultado_validacion.get('motivo')
 
         if motivo == 'usuario_no_encontrado':
@@ -34,14 +33,8 @@ def puede_realizar_reseña():
             return jsonify(construir_error_api(
                 code=ERROR_CODE_NOT_FOUND,
                 message='No se encontraron reservas',
-                description='No se encontraron reservas para el usuario en la fecha proporcionada'
+                description='El usuario no tiene reservas confirmadas'
             )), 404
-        if motivo == 'reseña_existente':
-            return jsonify(construir_error_api(
-                code=ERROR_CODE_CONFLICT,
-                message='Reseña ya existente',
-                description='Ya existe una reseña para el usuario en la fecha proporcionada'
-            )), 409
     except ValueError as exc:
         return jsonify(construir_error_api(
             code=ERROR_CODE_INVALID_BODY,
@@ -51,12 +44,13 @@ def puede_realizar_reseña():
     except Exception:
         return jsonify(construir_error_api(
             code=ERROR_CODE_INTERNAL_SERVER,
-            message='Error al validar la reserva',
+            message='Error al validar la solicitud',
             description='Ocurrió un error inesperado durante la validación'
         )), 500
 
     return jsonify({
         'puede_realizar_reseña': resultado_validacion.get('puede_realizar_reseña', False),
+        'motivo': motivo,
         'message': 'Validación completada',
     }), 200
 

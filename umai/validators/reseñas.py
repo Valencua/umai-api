@@ -1,4 +1,6 @@
+from db import supabase
 from umai.utils import construir_error_api, validar_longitud, validar_minimo, validar_maximo, validar_entero
+from umai.constants import ESTADO_RESERVA_CONFIRMADO
 
 def validar_id_reseña(id_reseña: str) -> int:
     return validar_entero(id_reseña, 'id')
@@ -49,3 +51,33 @@ def validar_crear_reseña(body: dict) -> dict:
         'descripcion': descripcion,
         'rating': rating
     }                    
+
+def validar_existe_cliente(email: str) -> dict:
+    respuesta = (
+        supabase.table('clientes')
+        .select('cliente_id')
+        .eq('email', email)
+        .limit(1)
+        .execute()
+    )
+    return respuesta.data[0] if respuesta.data else None
+
+def cliente_tiene_reservas_confirmadas(cliente_id: int):
+    respuesta = (
+        supabase.table('reservas')
+        .select('reserva_id')
+        .eq('cliente_id', cliente_id)
+        .eq('estado', ESTADO_RESERVA_CONFIRMADO)
+        .execute()
+    )
+    return respuesta
+
+def cliente_tiene_reseña(cliente_id: int):
+    respuesta = (
+        supabase.table('reseñas')
+        .select('reseña_id')
+        .eq('cliente_id', cliente_id)
+        .limit(1)
+        .execute()
+    )
+    return respuesta

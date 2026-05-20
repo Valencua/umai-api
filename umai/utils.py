@@ -1,12 +1,6 @@
 """
 Para manejar las excepciones, errores, etc. (Más que nada lo vamos a utilizar
 para utilizarlo como handler global)
-<<<<<<< HEAD
-=======
-""""""
-Para manejar las excepciones, errores, etc. (Más que nada lo vamos a utilizar
-para utilizarlo como handler global)
->>>>>>> testing_publicacion_platos
 """
 
 import logging
@@ -36,7 +30,6 @@ TZ_LOCAL = ZoneInfo(TZ_LOCAL_NAME)
 EMAIL_RE = re.compile(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
 TELEFONO_RE = re.compile(r'^\+?[\d\s\-().]+$')
 
-
 def construir_error_api(code: str, message: str, description: str, level: str = 'error') -> dict:
     return {
         'errors': [{
@@ -46,7 +39,6 @@ def construir_error_api(code: str, message: str, description: str, level: str = 
             'description': description
         }]
     }
-
 
 def validar_longitud(valor: str, campo: str, min: int = None, max: int = None) -> None:
     errores = []

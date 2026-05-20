@@ -22,23 +22,14 @@ def get_rating_promedio():
 def get_reservas_hoy():
     try:
         reservas_cantidad = obtener_reservas_hoy()
-        if reservas_cantidad is None:
-            return jsonify({
-                'data': 0,
-                'message': 'No hay reservas para hoy',
-                'status': 'success'
-            }), 200
-
-        return jsonify({
-            'data': reservas_cantidad,
-            'status': 'success'
-        }), 200
     except Exception:
         return jsonify(construir_error_api(
             code=ERROR_CODE_INTERNAL_SERVER,
             message='Error al obtener reservas',
             description='Ocurrió un error al intentar obtener las reservas para hoy'
         )), 500
+    return jsonify(reservas_cantidad), 200
+
 
 @metricas_bp.route('/cancelaciones-hoy', methods=['GET'])
 def get_cancelaciones_hoy():
@@ -68,16 +59,13 @@ def get_metricas_reservas():
 @metricas_bp.route('/personas-hoy', methods=['GET'])
 def get_personas_hoy():
     try:
-        personas = obtener_personas_hoy()
-        return jsonify({
-            'data': personas,
-            'status': 'success'
-        }), 200
+        personas_cantidad = obtener_personas_hoy()
     except Exception as e:
         return jsonify(construir_error_api(
             code=ERROR_CODE_INTERNAL_SERVER,
             message='Error al obtener personas',
             description='Ocurrió un error al intentar obtener las personas para hoy'
         )), 500
+    return jsonify(personas_cantidad), 200
 
 

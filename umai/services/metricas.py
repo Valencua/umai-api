@@ -20,23 +20,21 @@ def obtener_rating_promedio() -> dict:
     return {'promedio': promedio}
 
 def obtener_reservas_hoy():
-    fecha_hoy_local = datetime.now(TZ_LOCAL).date()
-    inicio_local = datetime.combine(fecha_hoy_local, datetime.min.time(), tzinfo=TZ_LOCAL)
-    fin_local = datetime.combine(fecha_hoy_local + timedelta(days=1), datetime.min.time(), tzinfo=TZ_LOCAL)
+    ahora = datetime.now(TZ_LOCAL)
+    inicio_dia_local = ahora.replace(hour=0, minute=0, second=0, microsecond=0)
+    fin_dia_local    = inicio_dia_local + timedelta(days=1)
 
-    inicio_utc = a_utc(inicio_local)
-    fin_utc = a_utc(fin_local)
-    inicio_iso = inicio_utc.isoformat().replace('+00:00', 'Z')
-    fin_iso = fin_utc.isoformat().replace('+00:00', 'Z')
+    inicio_utc = a_utc(inicio_dia_local).isoformat().replace('+00:00', 'Z')
+    fin_utc    = a_utc(fin_dia_local).isoformat().replace('+00:00', 'Z')
 
     response = (
         supabase.from_('reservas')
         .select('*')
-        .gte('fecha', inicio_iso)
-        .lt('fecha', fin_iso)
+        .gte('fecha', inicio_utc)
+        .lt('fecha', fin_utc)
         .execute()
     )
-    return len(response.data)
+    return {'reservas': len(response.data)}
 
 def obtener_cancelaciones_hoy() -> dict:
     ahora = datetime.now(TZ_LOCAL)
@@ -88,21 +86,18 @@ def obtener_metricas_reservas() -> dict:
 
 def obtener_personas_hoy():
     try:
-        fecha_hoy_local = datetime.now(TZ_LOCAL).date()
-        inicio_local = datetime.combine(fecha_hoy_local, datetime.min.time(), tzinfo=TZ_LOCAL)
-        fin_local = datetime.combine(fecha_hoy_local + timedelta(days=1), datetime.min.time(), tzinfo=TZ_LOCAL)
+        ahora = datetime.now(TZ_LOCAL)
+        inicio_dia_local = ahora.replace(hour=0, minute=0, second=0, microsecond=0)
+        fin_dia_local    = inicio_dia_local + timedelta(days=1)
 
-        inicio_utc = a_utc(inicio_local)
-        fin_utc = a_utc(fin_local)
-        # Usamos el sufijo 'Z' para indicar UTC de forma compacta
-        inicio_iso = inicio_utc.isoformat().replace('+00:00', 'Z')
-        fin_iso = fin_utc.isoformat().replace('+00:00', 'Z')
+        inicio_utc = a_utc(inicio_dia_local).isoformat().replace('+00:00', 'Z')
+        fin_utc    = a_utc(fin_dia_local).isoformat().replace('+00:00', 'Z')
 
         response = (
             supabase.from_('reservas')
             .select('cantidad_personas')
-            .gte('fecha', inicio_iso)
-            .lt('fecha', fin_iso)
+            .gte('fecha', inicio_utc)
+            .lt('fecha', fin_utc)
             .eq('estado', ESTADO_RESERVA_CONFIRMADO)
             .execute()
         )
@@ -110,7 +105,7 @@ def obtener_personas_hoy():
         for reserva in response.data:
             personas_hoy += reserva['cantidad_personas']
         
-        return personas_hoy
+        return {'personas': personas_hoy}
     except Exception:
         return None
 

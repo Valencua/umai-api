@@ -7,7 +7,7 @@ from umai.routes.platos import platos_bp
 from umai.routes.reseñas import reseñas_bp
 from umai.routes.servicios import servicios_bp
 from umai.routes.metricas import metricas_bp
-
+from umai.routes.auth import auth_bp
 
 logging.basicConfig(level=logging.DEBUG, format='%(levelname)s - %(name)s - %(message)s')
 
@@ -16,6 +16,8 @@ app.json.sort_keys = False
 CORS(app)
 
 
+
+app.register_blueprint(auth_bp, url_prefix="/auth")
 app.register_blueprint(reservas_bp, url_prefix="/reservas")
 app.register_blueprint(platos_bp, url_prefix="/platos")
 app.register_blueprint(reseñas_bp, url_prefix="/reseñas")

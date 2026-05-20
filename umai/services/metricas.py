@@ -124,28 +124,3 @@ DIAS_SEMANA = {
     'Sunday':    'Domingo'
 }
 
-def obtener_reservas_ultimos_7_dias() -> list:
-    hoy_local = datetime.now(TZ_LOCAL).date()
-    resultado = []
-
-    for i in range(6, -1, -1):
-        dia_local = hoy_local - timedelta(days=i)
-        inicio_local = datetime.combine(dia_local, datetime.min.time(), tzinfo=TZ_LOCAL)
-        fin_local    = datetime.combine(dia_local + timedelta(days=1), datetime.min.time(), tzinfo=TZ_LOCAL)
-
-        inicio_utc = a_utc(inicio_local).isoformat().replace('+00:00', 'Z')
-        fin_utc    = a_utc(fin_local).isoformat().replace('+00:00', 'Z')
-
-        response = supabase.table('reservas') \
-            .select('reserva_id') \
-            .gte('fecha', inicio_utc) \
-            .lt('fecha', fin_utc) \
-            .execute()
-
-        resultado.append({
-            'dia':      DIAS_SEMANA[dia_local.strftime('%A')],
-            'reservas': len(response.data)
-        })
-
-    return resultado
-

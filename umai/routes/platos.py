@@ -77,7 +77,7 @@ def delete_plato(plato_id):
         return jsonify(construir_error_api(
             code=ERROR_CODE_INTERNAL_SERVER,
             message='Error al eliminar el plato',
-            description='OcurriÃ³ un error inesperado'
+            description='Ocurrio un error inesperado'
         )), 500
 
     return '', 204

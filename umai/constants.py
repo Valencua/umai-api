@@ -1,6 +1,4 @@
 """Constantes globales del back"""
-
-
 TZ_LOCAL_NAME = 'America/Argentina/Buenos_Aires'
 
 FORMATO_FECHA = '%Y-%m-%d'
@@ -49,4 +47,5 @@ MAX_FOTO_BYTES = 5 * 1024 * 1024
 HORARIOS_DISPONIBLES = [
     '18:30','19:00','19:30','20:00', '20:30', '21:00', '21:30', '22:00', '22:30', '23:00', '23:30', '00:00', '00:30', '01:00'   
 ]
+
 

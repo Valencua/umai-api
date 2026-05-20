@@ -1,4 +1,13 @@
+
 from db import supabase
+import uuid
+from db import supabase
+from umai.utils import construir_error_api
+
+from umai.constants import (
+    ERROR_CODE_ETIQUETAS_INVALIDAS,
+    ERROR_CODE_PLATO_DUPLICADO
+)
 
 
 def crear_plato(data: dict) -> dict:
@@ -13,12 +22,11 @@ def crear_plato(data: dict) -> dict:
 
     if existente.data:
 
-        raise ValueError([
-            {
-                'campo': 'nombre',
-                'mensaje': f"Ya existe un plato con el nombre '{data['nombre']}'"
-            }
-        ])
+        raise ValueError(construir_error_api(
+            code=ERROR_CODE_PLATO_DUPLICADO,
+            message='Plato ya existente',
+            description=f"Ya existe un plato con el nombre '{data['nombre']}'"
+        ))
 
     etiquetas = data.get('etiquetas', [])
 
@@ -33,33 +41,46 @@ def crear_plato(data: dict) -> dict:
         )
 
         ids_existentes = [
-
             etiqueta['etiqueta_id']
-
             for etiqueta in etiquetas_existentes.data
         ]
 
         etiquetas_invalidas = [
-
             etiqueta_id
-
             for etiqueta_id in etiquetas
-
             if etiqueta_id not in ids_existentes
         ]
 
         if etiquetas_invalidas:
 
-            raise ValueError([
-                {
-                    'campo': 'etiquetas',
-                    'mensaje': f"Las siguientes etiquetas no existen: {etiquetas_invalidas}"
-                }
-            ])
+            raise ValueError(construir_error_api(
+                code=ERROR_CODE_ETIQUETAS_INVALIDAS,
+                message='Etiquetas inexistentes',
+                description=f'Las siguientes etiquetas no existen: {etiquetas_invalidas}'
+            ))
 
     foto = data['foto']
 
+    extension = foto.filename.split('.')[-1]
+
+    nombre_archivo = f'{uuid.uuid4()}.{extension}'
+
     contenido_imagen = foto.read()
+
+    supabase.storage.from_('platos').upload(
+        path=nombre_archivo,
+        file=contenido_imagen,
+        file_options={
+            'content-type': foto.content_type
+        }
+    )
+
+    foto_url = (
+        supabase
+        .storage
+        .from_('platos')
+        .get_public_url(nombre_archivo)
+    )
 
     response = (
         supabase
@@ -68,49 +89,29 @@ def crear_plato(data: dict) -> dict:
             'nombre': data['nombre'],
             'descripcion': data['descripcion'],
             'precio': data['precio'],
-            'foto': contenido_imagen
+            'foto': foto_url,
         })
         .execute()
     )
 
     plato = response.data[0]
 
-    try:
+    if etiquetas:
 
-        if etiquetas:
-
-            relaciones = []
-
-            for etiqueta_id in etiquetas:
-
-                relaciones.append({
-                    'plato_id': plato['plato_id'],
-                    'etiqueta_id': etiqueta_id
-                })
-
-            (
-                supabase
-                .table('plato_etiquetas')
-                .insert(relaciones)
-                .execute()
-            )
-
-    except Exception:
+        relaciones = [
+            {
+                'plato_id': plato['plato_id'],
+                'etiqueta_id': etiqueta_id,
+            }
+            for etiqueta_id in etiquetas
+        ]
 
         (
             supabase
-            .table('platos')
-            .delete()
-            .eq('plato_id', plato['plato_id'])
+            .table('plato_etiquetas')
+            .insert(relaciones)
             .execute()
         )
-
-        raise ValueError([
-            {
-                'campo': 'etiquetas',
-                'mensaje': 'Error al asociar las etiquetas al plato'
-            }
-        ])
 
     return plato
 

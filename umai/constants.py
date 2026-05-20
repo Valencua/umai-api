@@ -1,5 +1,6 @@
 """Constantes globales del back"""
 
+
 TZ_LOCAL_NAME = 'America/Argentina/Buenos_Aires'
 
 FORMATO_FECHA = '%Y-%m-%d'
@@ -25,6 +26,7 @@ ESTADO_RESERVA_PENDIENTE = 'pendiente'
 ESTADO_RESERVA_CONFIRMADO = 'confirmado' 
 ESTADO_RESERVA_CANCELADO = 'cancelado' 
 
+ERROR_CODE_ETIQUETAS_INVALIDAS = 'invalid.plato.etiquetas'
 ERROR_CODE_INVALID_BODY = 'invalid.body'
 ERROR_CODE_INTERNAL_SERVER     = 'server.error'
 ERROR_CODE_INVALID_MIN_VALUE = 'invalid.min.value'
@@ -32,5 +34,6 @@ ERROR_CODE_INVALID_MAX_VALUE = 'invalid.max.value'
 ERROR_CODE_TURNO_LLENO = 'turno.lleno'
 ERROR_CODE_RESERVA_ACTIVA = 'reserva.activa'
 
-
+ERROR_CODE_PLATO_DUPLICADO = 'plato.duplicado'
 ERROR_CODES_CONFLICTO = (ERROR_CODE_TURNO_LLENO, ERROR_CODE_RESERVA_ACTIVA)
+

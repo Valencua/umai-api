@@ -1,7 +1,6 @@
 import logging
 from flask import Flask
 from flask_cors import CORS
-
 from umai.routes.reservas import reservas_bp
 from umai.routes.platos import platos_bp
 from umai.routes.reseñas import reseñas_bp

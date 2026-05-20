@@ -39,17 +39,17 @@ def obtener_reservas_hoy():
     return len(response.data)
 
 def obtener_cancelaciones_hoy() -> dict:
-    ahora = a_local(datetime.now())
+    ahora = datetime.now(TZ_LOCAL)
     inicio_dia_local = ahora.replace(hour=0, minute=0, second=0, microsecond=0)
     fin_dia_local    = inicio_dia_local + timedelta(days=1)
 
-    inicio_utc = a_utc(inicio_dia_local)
-    fin_utc    = a_utc(fin_dia_local)
+    inicio_utc = a_utc(inicio_dia_local).isoformat().replace('+00:00', 'Z')
+    fin_utc    = a_utc(fin_dia_local).isoformat().replace('+00:00', 'Z')
     response = supabase.table('reservas') \
         .select('reserva_id') \
         .eq('estado', 'cancelado') \
-        .gte('fecha', inicio_utc.isoformat()) \
-        .lt('fecha', fin_utc.isoformat()) \
+        .gte('fecha', inicio_utc) \
+        .lt('fecha', fin_utc) \
         .execute()
 
     return {'cancelaciones': len(response.data)}
@@ -114,21 +114,38 @@ def obtener_personas_hoy():
     except Exception:
         return None
 
-def obtener_reservas_semanal() -> list:
-    hoy = datetime.now(timezone.utc)
-    hace_siete_dias = hoy - timedelta(days=7)
+DIAS_SEMANA = {
+    'Monday':    'Lunes',
+    'Tuesday':   'Martes',
+    'Wednesday': 'Miércoles',
+    'Thursday':  'Jueves',
+    'Friday':    'Viernes',
+    'Saturday':  'Sábado',
+    'Sunday':    'Domingo'
+}
 
-    hoy_str = hoy.strftime(FORMATO_FECHA)
-    hace_siete_dias_str = hace_siete_dias.strftime(FORMATO_FECHA)
+def obtener_reservas_ultimos_7_dias() -> list:
+    hoy_local = datetime.now(TZ_LOCAL).date()
+    resultado = []
 
-    response = (
-        supabase.table('reservas') 
-        .select('*') 
-        .eq('estado', ESTADO_RESERVA_CONFIRMADO) 
-        .gte('fecha', hace_siete_dias_str) 
-        .lte('fecha', hoy_str)
-        .execute()
-    )
+    for i in range(6, -1, -1):
+        dia_local = hoy_local - timedelta(days=i)
+        inicio_local = datetime.combine(dia_local, datetime.min.time(), tzinfo=TZ_LOCAL)
+        fin_local    = datetime.combine(dia_local + timedelta(days=1), datetime.min.time(), tzinfo=TZ_LOCAL)
 
-    return response.data if response.data else []
+        inicio_utc = a_utc(inicio_local).isoformat().replace('+00:00', 'Z')
+        fin_utc    = a_utc(fin_local).isoformat().replace('+00:00', 'Z')
+
+        response = supabase.table('reservas') \
+            .select('reserva_id') \
+            .gte('fecha', inicio_utc) \
+            .lt('fecha', fin_utc) \
+            .execute()
+
+        resultado.append({
+            'dia':      DIAS_SEMANA[dia_local.strftime('%A')],
+            'reservas': len(response.data)
+        })
+
+    return resultado
 

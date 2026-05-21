@@ -35,3 +35,13 @@ ERROR_CODE_NOT_FOUND = 'not.found'
 ERROR_CODE_CONFLICT = 'conflict'
 
 ERROR_CODES_CONFLICTO = (ERROR_CODE_TURNO_LLENO, ERROR_CODE_RESERVA_ACTIVA, ERROR_CODE_CONFLICT)
+
+DIAS_SEMANA = {
+    'Monday':    'Lunes',
+    'Tuesday':   'Martes',
+    'Wednesday': 'Miércoles',
+    'Thursday':  'Jueves',
+    'Friday':    'Viernes',
+    'Saturday':  'Sábado',
+    'Sunday':    'Domingo'
+}

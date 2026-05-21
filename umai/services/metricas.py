@@ -1,8 +1,8 @@
 
 from db import supabase
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta
 from umai.utils import a_utc, TZ_LOCAL, a_local
-from umai.constants import ESTADO_RESERVA_PENDIENTE, ESTADO_RESERVA_CONFIRMADO, FORMATO_FECHA
+from umai.constants import ESTADO_RESERVA_CONFIRMADO, DIAS_SEMANA
 
 def obtener_rating_promedio() -> dict:
     response = supabase.table('reseñas') \
@@ -85,7 +85,30 @@ def obtener_metricas_reservas() -> dict:
         'canceladas': {'cantidad': canceladas, 'porcentaje': porcentaje(canceladas)},
         'pendientes':    {'cantidad': pendiente,    'porcentaje': porcentaje(pendiente)}
     }
+def obtener_reservas_ultimos_7_dias() -> list:
+    hoy_local = datetime.now(TZ_LOCAL).date()
+    resultado = []
 
+    for i in range(6, -1, -1):
+        dia_local = hoy_local - timedelta(days=i)
+        inicio_local = datetime.combine(dia_local, datetime.min.time(), tzinfo=TZ_LOCAL)
+        fin_local    = datetime.combine(dia_local + timedelta(days=1), datetime.min.time(), tzinfo=TZ_LOCAL)
+
+        inicio_utc = a_utc(inicio_local).isoformat().replace('+00:00', 'Z')
+        fin_utc    = a_utc(fin_local).isoformat().replace('+00:00', 'Z')
+
+        response = supabase.table('reservas') \
+            .select('reserva_id') \
+            .gte('fecha', inicio_utc) \
+            .lt('fecha', fin_utc) \
+            .execute()
+
+        resultado.append({
+            'dia':      DIAS_SEMANA[dia_local.strftime('%A')],
+            'reservas': len(response.data)
+        })
+
+    return resultado
 def obtener_personas_hoy():
     try:
         fecha_hoy_local = datetime.now(TZ_LOCAL).date()
@@ -94,7 +117,7 @@ def obtener_personas_hoy():
 
         inicio_utc = a_utc(inicio_local)
         fin_utc = a_utc(fin_local)
-        # Usamos el sufijo 'Z' para indicar UTC de forma compacta
+        
         inicio_iso = inicio_utc.isoformat().replace('+00:00', 'Z')
         fin_iso = fin_utc.isoformat().replace('+00:00', 'Z')
 
@@ -116,9 +139,10 @@ def obtener_personas_hoy():
 
 def obtener_dashboard() -> dict:
     return {
-        'rating':           obtener_rating_promedio(),
-        'reservas_hoy':     obtener_reservas_hoy(),
-        'cancelaciones':    obtener_cancelaciones_hoy(),
+        'rating':            obtener_rating_promedio(),
+        'reservas_hoy':      obtener_reservas_hoy(),
+        'cancelaciones':     obtener_cancelaciones_hoy(),
         'metricas_reservas': obtener_metricas_reservas(),
-        'personas_hoy':     obtener_personas_hoy()
+        'personas_hoy':      obtener_personas_hoy(),
+        'Reservas_semana':   obtener_reservas_ultimos_7_dias()
     }

@@ -1,3 +1,7 @@
+from db import supabase
+from umai.utils import construir_error_api, validar_longitud
+
+
 def validar_crear_plato(body: dict) -> dict:
 
     errores = []
@@ -97,3 +101,56 @@ def validar_crear_plato(body: dict) -> dict:
         'foto': body['foto'],
         'etiquetas': etiquetas_lista
     }
+
+def validar_actualizar_plato(body: dict) -> dict:
+    errores = []
+    data = {}
+
+    # Todos los campos son opcionales en PATCH
+    if 'nombre' in body and body['nombre']:
+        try:
+            validar_longitud(body['nombre'], 'nombre', min=3, max=100)
+        except ValueError as e:
+            errores.extend(e.args[0]['errors'])
+        data['nombre'] = body['nombre'].strip()
+
+    if 'descripcion' in body and body['descripcion']:
+        try:
+            validar_longitud(body['descripcion'], 'descripcion', min=10, max=500)
+        except ValueError as e:
+            errores.extend(e.args[0]['errors'])
+        data['descripcion'] = body['descripcion'].strip()
+
+    if 'precio' in body and body['precio']:
+        try:
+            data['precio'] = int(body['precio'])
+            if data['precio'] <= 0:
+                errores.append(construir_error_api(
+                    code='invalid.precio.value',
+                    message="'precio' inválido",
+                    description="El precio debe ser mayor a 0"
+                )['errors'][0])
+        except (ValueError, TypeError):
+            errores.append(construir_error_api(
+                code='invalid.precio.format',
+                message="'precio' inválido",
+                description="El precio debe ser un número entero"
+            )['errors'][0])
+
+    if 'foto' in body and body['foto']:
+        data['foto'] = body['foto']
+
+    if 'etiquetas' in body:
+        data['etiquetas'] = body['etiquetas']
+
+    if not data:
+        errores.append(construir_error_api(
+            code='invalid.body.empty',
+            message='Sin campos para actualizar',
+            description='Debe enviar al menos un campo para actualizar'
+        )['errors'][0])
+
+    if errores:
+        raise ValueError({'errors': errores})
+
+    return data

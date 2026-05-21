@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, request
-from umai.services.platos import eliminar_plato, traer_todos_los_platos, crear_plato
+from umai.services.platos import eliminar_plato, traer_todos_los_platos, crear_plato, actualizar_plato
 from umai.utils import construir_error_api, validar_entero
-from umai.validators.platos import validar_crear_plato
+from umai.validators.platos import validar_crear_plato, validar_actualizar_plato
 
 from umai.constants import (
     ERROR_CODES_CONFLICTO,
@@ -81,3 +81,33 @@ def delete_plato(plato_id):
         )), 500
 
     return '', 204
+
+@platos_bp.route('/<string:plato_id>', methods=['PATCH'])
+def patch_plato(plato_id):
+    try:
+        id_validado = validar_entero(plato_id, 'plato_id')
+    except ValueError as e:
+        return jsonify(e.args[0]), 400
+
+    body = request.form.to_dict()
+    body['foto'] = request.files.get('foto')
+
+    try:
+        data  = validar_actualizar_plato(body)
+        plato = actualizar_plato(id_validado, data)
+        return jsonify(plato), 200
+
+    except ValueError as e:
+        error = e.args[0]
+        status = e.args[1] if len(e.args) > 1 else 400
+        if isinstance(error, dict) and error.get('errors'):
+            if error['errors'][0]['code'] in ERROR_CODES_CONFLICTO:
+                return jsonify(error), 409
+        return jsonify(error), status
+
+    except Exception as e:
+        return jsonify(construir_error_api(
+            code=ERROR_CODE_INTERNAL_SERVER,
+            message='Error al actualizar el plato',
+            description=str(e)
+        )), 500

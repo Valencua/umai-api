@@ -36,7 +36,7 @@ def obtener_reservas_hoy():
         .lt('fecha', fin_iso)
         .execute()
     )
-    return len(response.data)
+    return {'reservas_hoy':len(response.data)}
 
 def obtener_cancelaciones_hoy() -> dict:
     ahora = a_local(datetime.now())
@@ -110,25 +110,15 @@ def obtener_personas_hoy():
         for reserva in response.data:
             personas_hoy += reserva['cantidad_personas']
         
-        return personas_hoy
+        return {'personas_hoy':personas_hoy}
     except Exception:
         return None
 
-def obtener_reservas_semanal() -> list:
-    hoy = datetime.now(timezone.utc)
-    hace_siete_dias = hoy - timedelta(days=7)
-
-    hoy_str = hoy.strftime(FORMATO_FECHA)
-    hace_siete_dias_str = hace_siete_dias.strftime(FORMATO_FECHA)
-
-    response = (
-        supabase.table('reservas') 
-        .select('*') 
-        .eq('estado', ESTADO_RESERVA_CONFIRMADO) 
-        .gte('fecha', hace_siete_dias_str) 
-        .lte('fecha', hoy_str)
-        .execute()
-    )
-
-    return response.data if response.data else []
-
+def obtener_dashboard() -> dict:
+    return {
+        'rating':           obtener_rating_promedio(),
+        'reservas_hoy':     obtener_reservas_hoy(),
+        'cancelaciones':    obtener_cancelaciones_hoy(),
+        'metricas_reservas': obtener_metricas_reservas(),
+        'personas_hoy':     obtener_personas_hoy()
+    }

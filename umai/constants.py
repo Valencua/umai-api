@@ -1,7 +1,7 @@
 """Constantes globales del back"""
 
 TZ_LOCAL_NAME = 'America/Argentina/Buenos_Aires'
-
+FORMATO_FECHA = '%Y-%m-%d'
 FORMATO_FECHA_STR_Z = '%Y-%m-%dT%H:%M:%S.%fZ'
 FORMATO_FECHA_STR_zoneinfo = '%Y-%m-%dT%H:%M:%S.%f%z'
 
@@ -19,11 +19,13 @@ TELEFONO_MAX_DIGITOS = 15
 TELEFONO_MIN_LONGITUD = 8
 TELEFONO_MAX_LONGITUD = 30
 
-CAPACIDAD_MAXIMA_PERSONAS_POR_TURNO = 40
+CAPACIDAD_MAXIMA_PERSONAS_POR_TURNO = 5
 
 ESTADO_RESERVA_PENDIENTE = 'pendiente'  
 ESTADO_RESERVA_CONFIRMADO = 'confirmado' 
 ESTADO_RESERVA_CANCELADO = 'cancelado' 
+ERROR_CODE_MISSING_FECHA = 'required.date'
+ERROR_CODE_INVALID_FORMAT_FECHA = 'invalid.date'
 ERROR_CODE_INVALID_FECHA = 'invalid.past.date'
 ERROR_CODE_INVALID_HORARIO = 'invalid.time.range'
 ERROR_CODE_INVALID_BODY = 'invalid.body'

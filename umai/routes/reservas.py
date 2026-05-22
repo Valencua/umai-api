@@ -1,8 +1,8 @@
 from flask import Blueprint, jsonify, request
 from umai.utils import construir_error_api,validar_entero,validar_minimo
 from umai.constants import ERROR_CODE_INVALID_BODY, ERROR_CODES_CONFLICTO, ERROR_CODE_INTERNAL_SERVER, ERROR_CODE_RESERVA_NO_ENCONTRADA
-from umai.services.reservas import crear_reserva, obtener_reservas, cancelar_reserva_por_codigo, confirmar_reserva_por_codigo
-from umai.validators.reservas import validar_crear_reserva, validar_uuid_codigo,validar_funcion_reserva
+from umai.services.reservas import crear_reserva, obtener_reservas, cancelar_reserva_por_codigo, confirmar_reserva_por_codigo, obtener_disponibilidad
+from umai.validators.reservas import validar_crear_reserva, validar_uuid_codigo,validar_funcion_reserva, validar_fecha_disponibilidad
 
 reservas_bp = Blueprint('reservas', __name__)
 
@@ -62,6 +62,16 @@ def patch_reserva(uuid_codigo):
             message='Error al procesar la solicitud',
             description='Hubo un error interno'
         )), 500
+
+@reservas_bp.route('/disponibilidad', methods=['GET'])
+def get_disponibilidad():
+    fecha = request.args.get('fecha')
+    try:
+        fecha_obj = validar_fecha_disponibilidad(fecha)
+        data = obtener_disponibilidad(fecha_obj)
+        return jsonify({'data': data, 'status': 'success'}), 200
+    except ValueError as e:
+        return jsonify(e.args[0]), 400
     
 @reservas_bp.route('/', methods=['GET'])
 def get_reservas():

@@ -1,6 +1,6 @@
 import logging
 import uuid as uuid_lib
-
+from datetime import datetime, timezone
 from umai.constants import (
     FORMATO_FECHA_STR_zoneinfo,
     HORA_APERTURA,
@@ -14,7 +14,10 @@ from umai.constants import (
     ERROR_CODE_UUID_CODIGO_INVALIDO,
     ERROR_CODE_INVALID_FECHA,
     ERROR_CODE_INVALID_HORARIO,
-    FUNCIONES_VALIDAS
+    FUNCIONES_VALIDAS,
+    ERROR_CODE_MISSING_FECHA,
+    ERROR_CODE_INVALID_FORMAT_FECHA,
+    FORMATO_FECHA
 
 )
 from umai.utils import (
@@ -144,6 +147,22 @@ def validar_crear_reserva(body: dict) -> dict:
         'fecha_hora_utc': a_utc(fecha_hora_local),
         'cantidad_personas': cantidad_personas,
     }
+
+def validar_fecha_disponibilidad(fecha: str):
+    if not fecha or not fecha.strip():
+        raise ValueError(construir_error_api(
+            code=ERROR_CODE_MISSING_FECHA,
+            message='Fecha requerida',
+            description='Debe enviar la fecha en formato YYYY-MM-DD'
+        ))
+    try:
+        return datetime.strptime(fecha.strip(), FORMATO_FECHA).date()
+    except ValueError:
+        raise ValueError(construir_error_api(
+            code=ERROR_CODE_INVALID_FORMAT_FECHA,
+            message='Fecha inválida',
+            description='La fecha debe tener formato YYYY-MM-DD'
+        ))
 
 def validar_funcion_reserva(funcion: str) -> str:
     if not funcion or not funcion.strip():

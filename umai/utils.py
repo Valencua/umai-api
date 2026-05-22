@@ -12,8 +12,6 @@ from zoneinfo import ZoneInfo
 from umai.constants import (
     ERROR_CODE_INVALID_MAX_VALUE,
     ERROR_CODE_INVALID_MIN_VALUE,
-    FORMATO_FECHA,
-    FORMATO_HORARIO,
     HORA_APERTURA,
     HORA_CIERRE,
     MINUTO_APERTURA,
@@ -158,10 +156,6 @@ def validar_telefono(telefono: str) -> str:
         ))
 
     return telefono
-
-def combinar_fecha_horario(fecha: str, horario: str) -> datetime:
-    dt_naive = datetime.strptime(f'{fecha} {horario}', f'{FORMATO_FECHA} {FORMATO_HORARIO}')
-    return dt_naive.replace(tzinfo=TZ_LOCAL)
 
 def a_utc(dt: datetime) -> datetime:
     if dt.tzinfo is None:

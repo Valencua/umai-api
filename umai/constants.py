@@ -2,8 +2,8 @@
 
 TZ_LOCAL_NAME = 'America/Argentina/Buenos_Aires'
 
-FORMATO_FECHA = '%Y-%m-%d'
-FORMATO_HORARIO = '%H:%M'
+FORMATO_FECHA_STR_Z = '%Y-%m-%dT%H:%M:%S.%fZ'
+FORMATO_FECHA_STR_zoneinfo = '%Y-%m-%dT%H:%M:%S.%f%z'
 
 # Horario de atención (el cierre cruza medianoche: 18:30 → 01:00)
 HORA_APERTURA = 18
@@ -24,7 +24,8 @@ CAPACIDAD_MAXIMA_PERSONAS_POR_TURNO = 40
 ESTADO_RESERVA_PENDIENTE = 'pendiente'  
 ESTADO_RESERVA_CONFIRMADO = 'confirmado' 
 ESTADO_RESERVA_CANCELADO = 'cancelado' 
-
+ERROR_CODE_INVALID_FECHA = 'invalid.past.date'
+ERROR_CODE_INVALID_HORARIO = 'invalid.time.range'
 ERROR_CODE_INVALID_BODY = 'invalid.body'
 ERROR_CODE_INTERNAL_SERVER     = 'server.error'
 ERROR_CODE_INVALID_MIN_VALUE = 'invalid.min.value'

@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, request
 from umai.utils import construir_error_api
 from umai.constants import ERROR_CODE_INVALID_BODY, ERROR_CODES_CONFLICTO, ERROR_CODE_INTERNAL_SERVER, ERROR_CODE_RESERVA_NO_ENCONTRADA
-from umai.services.reservas import crear_reserva, confirmar_asistencia_por_codigo, get_top3_reservas, obtener_reservas, obtener_reservas_codigo, cancelar_reserva_por_codigo, obtener_disponibilidad
+from umai.services.reservas import crear_reserva, confirmar_asistencia_por_codigo,  obtener_reservas, obtener_disponibilidad
 from umai.validators.reservas import validar_crear_reserva, validar_uuid_codigo
 
 reservas_bp = Blueprint('reservas', __name__)
@@ -16,13 +16,14 @@ def post_reserva():
         return jsonify(construir_error_api(
             code=ERROR_CODE_INVALID_BODY,
             message='Cuerpo de la solicitud inválido',
-            description='El cuerpo debe ser un JSON válido con Content-Type application/json'
+            description='El cuerpo debe contener un JSON con los campos: nombre, email, telefono, fecha y cantidad de personas'
         )), 400
 
     try:
         data = validar_crear_reserva(body)
-        reserva = crear_reserva(data)
-        return jsonify(reserva), 201
+        crear_reserva(data)
+
+        return '', 201
     except ValueError as e:
         error = e.args[0]
         if error['errors'][0]['code'] in ERROR_CODES_CONFLICTO:
@@ -36,7 +37,7 @@ def post_reserva():
         )), 500
 
 
-@reservas_bp.route('/codigo/<uuid_codigo>', methods=['PATCH'])
+@reservas_bp.route('/<uuid_codigo>', methods=['PATCH'])
 def patch_confirmar_asistencia(uuid_codigo):
     try:
         codigo = validar_uuid_codigo(uuid_codigo)
@@ -57,7 +58,7 @@ def patch_confirmar_asistencia(uuid_codigo):
             description='Hubo un error interno'
         )), 500
 
-@reservas_bp.route('/reservas-historial', methods=['GET'])
+@reservas_bp.route('/', methods=['GET'])
 def get_reservas():
     try:
         reservas = obtener_reservas()
@@ -79,50 +80,6 @@ def get_reservas():
             'Error listando las reservas', 
             'Error inesperado')
         ), 500
-    
-@reservas_bp.route('/recientes', methods=['GET'])
-def get_3_reservas():
-    try:
-        reservas = get_top3_reservas()
-        if(reservas is None):
-            return jsonify(construir_error_api(
-                ERROR_CODE_INTERNAL_SERVER, 
-                'Error al acceder a la base de datos', 
-                'No se pudieron obtener las reservas')
-            ), 500
-
-        return jsonify(
-            {
-                'data': reservas, 
-                'status': 'success'}
-            ), 200
-            
-    except Exception:
-        return jsonify(construir_error_api(
-            ERROR_CODE_INTERNAL_SERVER, 
-            'Error listando las 3 reservas más recientes', 
-            'Error inesperado')
-        ), 500
-
-@reservas_bp.route('/codigo/<string:uuid_codigo>', methods=['GET'])
-def obtener_reserva(uuid_codigo):
-    
-
-    try:
-        reserva = obtener_reservas_codigo(uuid_codigo)
-    except Exception as e:
-        return jsonify(construir_error_api(
-            ERROR_CODE_INTERNAL_SERVER, 
-            'Error al acceder a la base de datos', 
-            'No se pudieron obtener las reservas')
-        ), 500
-    if not reserva:
-        return jsonify(construir_error_api(
-            code='not_found.reserva',
-            message='Reserva no encontrada',
-            description=f"No existe una reserva con el código '{uuid_codigo}'"
-        )), 404
-    return jsonify(reserva), 200
 
 @reservas_bp.route('/disponibilidad', methods=['GET'])
 def get_disponibilidad():
@@ -156,24 +113,4 @@ def get_disponibilidad():
             description='Ocurrió un error inesperado'
         )), 500
 
-@reservas_bp.route('/cancelar/<uuid_codigo>', methods=['POST'])
-def post_cancelar_reserva(uuid_codigo):
-    try:
-        codigo = validar_uuid_codigo(uuid_codigo)
-        reserva = cancelar_reserva_por_codigo(codigo)
-        return jsonify(reserva), 200
-    except ValueError as e:
-        error = e.args[0]
-        codigo_error = error['errors'][0]['code']
-        if codigo_error == ERROR_CODE_RESERVA_NO_ENCONTRADA:
-            return jsonify(error), 404
-        if codigo_error in ERROR_CODES_CONFLICTO:
-            return jsonify(error), 409
-        return jsonify(error), 400
-    except Exception:
-        return jsonify(construir_error_api(
-            code=ERROR_CODE_INTERNAL_SERVER,
-            message='error al procesar la solicitud',
-            description='Hubo un error interno'
-        )), 500
 

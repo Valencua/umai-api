@@ -13,9 +13,9 @@ from umai.constants import (
     ERROR_CODE_RESERVA_YA_CONFIRMADA,
     ESTADO_RESERVA_CONFIRMADO,
     ERROR_CODE_RESERVA_CANCELADA,
-    FORMATO_FECHA, 
-    FORMATO_HORARIO,
-    HORARIOS_DISPONIBLES
+    HORARIOS_DISPONIBLES,
+    FORMATO_FECHA_STR_Z,
+    FORMATO_FECHA_STR_zoneinfo,
 )
 
 from umai.utils import a_local, a_utc, construir_error_api, formatear_rfc3339, TZ_LOCAL
@@ -32,7 +32,6 @@ def _obtener_o_crear_cliente(nombre: str, email: str, telefono: str) -> int:
             'telefono': telefono,
         }).eq('cliente_id', cliente_id).execute()
         return cliente_id
-
     insertado = supabase.table('clientes').insert({
         'nombre': nombre,
         'email': email,
@@ -43,7 +42,7 @@ def _obtener_o_crear_cliente(nombre: str, email: str, telefono: str) -> int:
 
 def _parsear_fecha_utc(fecha_raw) -> datetime:
     if isinstance(fecha_raw, str):
-        fecha = datetime.fromisoformat(fecha_raw.replace('Z', '+00:00'))
+        fecha = datetime.strptime(fecha_raw.strip(), FORMATO_FECHA_STR_Z)
     else:
         fecha = fecha_raw
 
@@ -69,67 +68,28 @@ def _tiene_reserva_activa(email: str) -> bool:
 
     for reserva in respuesta.data:
         if _parsear_fecha_utc(reserva['fecha']) >= ahora:
+
             return True
 
     return False
-
-def _personas_reservadas_en_turno(fecha_hora_utc_iso: str) -> int:
+    
+def _personas_reservadas_en_turno(str_fecha_utc: str) -> int:
     respuesta = supabase.table('reservas').select('cantidad_personas').eq(
-        'fecha', fecha_hora_utc_iso
+        'fecha', str_fecha_utc
     ).neq(
         'estado', ESTADO_RESERVA_CANCELADO
     ).execute()
 
     return sum(fila['cantidad_personas'] for fila in respuesta.data)
 
-def _obtener_reserva_y_cliente_por_uuid(uuid_codigo: str) -> tuple[dict, dict]:
-    respuesta = supabase.table('reservas').select(
-        'reserva_id, cliente_id, fecha, cantidad_personas, uuid_codigo, qr_url, estado, '
-        'clientes(nombre, email, telefono)'
-    ).eq('uuid_codigo', uuid_codigo).execute()
-
-    if not respuesta.data:
-        raise ValueError(construir_error_api(
-            code=ERROR_CODE_RESERVA_NO_ENCONTRADA,
-            message='Reserva no encontrada',
-            description=f"No existe una reserva con el codigo '{uuid_codigo}'"
-        ))
-
-    fila = respuesta.data[0]
-    cliente = fila.pop('clientes') or {}
-    datos_cliente = {
-        'nombre': cliente.get('nombre', ''),
-        'email': cliente.get('email', ''),
-        'telefono': cliente.get('telefono', ''),
-    }
-    return fila, datos_cliente
-
-
-def _serializar_reserva(reserva: dict, datos_cliente: dict) -> dict:
-    fecha_utc = _parsear_fecha_utc(reserva['fecha'])
-    fecha_local = a_local(fecha_utc)
-
-    return {
-        'reserva_id': reserva['reserva_id'],
-        'nombre': datos_cliente['nombre'],
-        'email': datos_cliente['email'],
-        'telefono': datos_cliente['telefono'],
-        'fecha': formatear_rfc3339(fecha_utc),
-        'horario': fecha_local.strftime('%H:%M'),
-        'cantidad_personas': reserva['cantidad_personas'],
-        'uuid_codigo': reserva['uuid_codigo'],
-        'qr_url': reserva['qr_url'],
-        'estado': reserva['estado'],
-    }
-
 def crear_reserva(data: dict) -> dict:
-    fecha_hora_utc_iso = data['fecha_hora_utc'].isoformat().replace('+00:00', 'Z') #EJ formato ISO '2026-05-20T23:00:00+00:00' → reemplaza +00:00 por Z 2026-05-20T23:00:00Z
+    str_fecha_utc = data['fecha_hora_utc'].strftime(FORMATO_FECHA_STR_Z)
 
-    personas_en_turno = _personas_reservadas_en_turno(fecha_hora_utc_iso)
+    personas_en_turno = _personas_reservadas_en_turno(str_fecha_utc)
     if personas_en_turno + data['cantidad_personas'] > CAPACIDAD_MAXIMA_PERSONAS_POR_TURNO:
         logger.warning(
             'Turno lleno para %s: %s personas ya reservadas',
-            fecha_hora_utc_iso,
+            str_fecha_utc,
             personas_en_turno,
         )
         raise ValueError(construir_error_api(
@@ -161,16 +121,16 @@ def crear_reserva(data: dict) -> dict:
     codigo = uuid.uuid4()
     qr_url = f'https://umai.example/qr/{codigo}'
 
-    insertado = supabase.table('reservas').insert({
+    supabase.table('reservas').insert({
         'cliente_id': cliente_id,
-        'fecha': fecha_hora_utc_iso,
+        'fecha': str_fecha_utc,
         'cantidad_personas': data['cantidad_personas'],
         'uuid_codigo': str(codigo),
         'qr_url': qr_url,
         'estado': ESTADO_RESERVA_PENDIENTE,
     }).execute()
+    print(str_fecha_utc)
 
-    return _serializar_reserva(insertado.data[0], data)
 
 def confirmar_asistencia_por_codigo(uuid_codigo: str) -> dict:
     reserva, datos_cliente = _obtener_reserva_y_cliente_por_uuid(uuid_codigo)
@@ -212,38 +172,6 @@ def obtener_reservas():
             reserva['fecha'] = fecha_local.strftime(f"{FORMATO_FECHA} {FORMATO_HORARIO}")
 
     return reservas.data
-
-def get_top3_reservas():
-    reservas_recientes = (
-        supabase.table('reservas')
-        .select('*')
-        .order('reserva_id', desc=True)
-        .limit(3)
-        .execute()
-    )
-
-    for reserva in reservas_recientes.data:
-        fecha = reserva.get('fecha')
-        
-        if fecha:
-            if isinstance(fecha, str):
-                fecha_dt = datetime.fromisoformat(fecha.replace('Z', '+00:00'))
-            else:
-                fecha_dt = fecha
-            fecha_local = a_local(fecha_dt)
-            reserva['fecha'] = formatear_rfc3339(fecha_local)
-            reserva['fecha'] = fecha_local.strftime(f"{FORMATO_FECHA} {FORMATO_HORARIO}")
-
-    return reservas_recientes.data
-
-def obtener_reservas_codigo(uuid_codigo):
-
-    response = supabase.table('reservas').select('*,clientes(*)').eq('uuid_codigo', uuid_codigo).execute()
-
-    if not response.data:
-        return None
-
-    return response.data[0]
 
 def obtener_disponibilidad(fecha: str):
     try:
@@ -305,23 +233,4 @@ def obtener_disponibilidad(fecha: str):
             'disponible': lugares_disponibles > 0
         })
     return disponibilidad
-
-def cancelar_reserva_por_codigo(uuid_codigo: str) -> dict:
-    reserva, datos_cliente = _obtener_reserva_y_cliente_por_uuid(uuid_codigo)
-
-    if reserva['estado'] == ESTADO_RESERVA_CANCELADO:
-        return _serializar_reserva(reserva, datos_cliente)
-
-    if reserva['estado'] == ESTADO_RESERVA_CONFIRMADO:
-        raise ValueError(construir_error_api(
-            code=ERROR_CODE_RESERVA_YA_CONFIRMADA,
-            message='No se puede cancelar la reserva',
-            description='La reserva ya fue confirmada (asistencia registrada) y no puede cancelarse'
-        ))
-
-    actualizado = supabase.table('reservas').update({
-        'estado': ESTADO_RESERVA_CANCELADO,
-    }).eq('uuid_codigo', uuid_codigo).execute()
-
-    return _serializar_reserva(actualizado.data[0], datos_cliente)
 

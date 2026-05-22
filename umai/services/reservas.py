@@ -240,14 +240,6 @@ def obtener_reservas(limit=None, offset=None, orden='desc', uuid_codigo=None) ->
     return resultado
 
 def obtener_disponibilidad(fecha_obj) -> list[dict]:
-    hoy = datetime.now(TZ_LOCAL).date()
-
-    if fecha_obj < hoy:
-        raise ValueError(construir_error_api(
-            code=ERROR_CODE_INVALID_FECHA,
-            message='Fecha inválida',
-            description='No se puede consultar disponibilidad para fechas pasadas'
-        ))
 
     fecha_str = fecha_obj.strftime(FORMATO_FECHA)
     disponibilidad = []

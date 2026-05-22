@@ -156,13 +156,23 @@ def validar_fecha_disponibilidad(fecha: str):
             description='Debe enviar la fecha en formato YYYY-MM-DD'
         ))
     try:
-        return datetime.strptime(fecha.strip(), FORMATO_FECHA).date()
+        fecha_obj = datetime.strptime(fecha.strip(), FORMATO_FECHA).date()
     except ValueError:
         raise ValueError(construir_error_api(
             code=ERROR_CODE_INVALID_FORMAT_FECHA,
             message='Fecha inválida',
             description='La fecha debe tener formato YYYY-MM-DD'
         ))
+    hoy = datetime.now(TZ_LOCAL).date()
+
+    if fecha_obj < hoy:
+        raise ValueError(construir_error_api(
+            code=ERROR_CODE_INVALID_FECHA,
+            message='Fecha inválida',
+            description='No se puede consultar disponibilidad para fechas pasadas'
+        ))
+
+    return fecha_obj
 
 def validar_funcion_reserva(funcion: str) -> str:
     if not funcion or not funcion.strip():

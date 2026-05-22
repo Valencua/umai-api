@@ -18,7 +18,8 @@ from umai.constants import (
     FORMATO_FECHA_STR_zoneinfo,
     ERROR_CODE_INVALID_FORMAT_FECHA,
     FORMATO_FECHA,
-    ERROR_CODE_INVALID_FECHA
+    ERROR_CODE_INVALID_FECHA,
+    ERROR_CODE_RESERVA_TURNO_PASADO
 )
 
 from umai.utils import  a_utc, construir_error_api, formatear_rfc3339, TZ_LOCAL, a_local
@@ -186,6 +187,13 @@ def confirmar_reserva_por_codigo(uuid_codigo: str) -> dict:
             code=ERROR_CODE_RESERVA_CANCELADA,
             message='No se puede confirmar asistencia',
             description='La reserva esta cancelada y no puede marcarse como asistida'
+        ))
+
+    if _parsear_fecha_utc(reserva['fecha']) < datetime.now(timezone.utc):
+        raise ValueError(construir_error_api(
+            code=ERROR_CODE_RESERVA_TURNO_PASADO,
+            message='No se puede confirmar la reserva',
+            description='El turno de la reserva ya finalizo',
         ))
 
     if reserva['estado'] == ESTADO_RESERVA_CONFIRMADO:

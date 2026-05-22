@@ -174,8 +174,6 @@ def crear_reserva(data: dict) -> dict:
         'qr_url': qr_url,
         'estado': ESTADO_RESERVA_PENDIENTE,
     }).execute()
-    print(str_fecha_utc)
-
 
 def confirmar_reserva_por_codigo(uuid_codigo: str) -> dict:
     reserva, datos_cliente = _obtener_reserva_y_cliente_por_uuid(uuid_codigo)

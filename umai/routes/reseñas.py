@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, request
 from umai.utils import construir_error_api, validar_entero
 from umai.services.reseñas import listar_reseñas, eliminar_reseña, crear_reseña, actualizar_estado_reseña
-from umai.validators.reseñas import  validar_crear_reseña
+from umai.validators.reseñas import  validar_crear_reseña, validar_actualizar_estado_reseña
 from umai.constants import ERROR_CODE_NOT_FOUND, ERROR_CODE_INTERNAL_SERVER, ERROR_CODE_INVALID_BODY
 
 reseñas_bp = Blueprint('reseñas', __name__)
@@ -83,17 +83,10 @@ def post_reseña():
 @reseñas_bp.route('/<string:resena_id>', methods=['PATCH'])
 def patch_estado_reseña(resena_id):
     body = request.get_json(silent=True)
-
-    if body is None:
-        return jsonify(construir_error_api(
-            code=ERROR_CODE_INVALID_BODY,
-            message='Cuerpo de la solicitud inválido',
-            description='El cuerpo debe ser un JSON válido con Content-Type application/json'
-        )), 400
-
     try:
         id_validado = validar_entero(resena_id, 'resena_id')
-        reseña_actualizada = actualizar_estado_reseña(id_validado, body['estado'])
+        estado_validado = validar_actualizar_estado_reseña(body)
+        reseña_actualizada = actualizar_estado_reseña(id_validado, estado_validado)
     except ValueError as e:
         status = e.args[1] if len(e.args) > 1 else 400
         return jsonify(e.args[0]), status

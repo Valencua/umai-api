@@ -14,6 +14,8 @@ from umai.constants import (
     ERROR_CODE_UUID_CODIGO_INVALIDO,
     ERROR_CODE_INVALID_FECHA,
     ERROR_CODE_INVALID_HORARIO,
+    FUNCIONES_VALIDAS
+
 )
 from umai.utils import (
     a_utc,
@@ -142,3 +144,19 @@ def validar_crear_reserva(body: dict) -> dict:
         'fecha_hora_utc': a_utc(fecha_hora_local),
         'cantidad_personas': cantidad_personas,
     }
+
+def validar_funcion_reserva(funcion: str) -> str:
+    if not funcion or not funcion.strip():
+        raise ValueError(construir_error_api(
+            code='required.funcion',
+            message='funcion es requerida',
+            description='Debe indicar ?funcion=cancelar o ?funcion=confirmar'
+        ))
+    funcion = funcion.strip().lower()
+    if funcion not in FUNCIONES_VALIDAS:
+        raise ValueError(construir_error_api(
+            code='invalid.funcion',
+            message='funcion invalida',
+            description="Los valores permitidos son: 'cancelar', 'confirmar'"
+        ))
+    return funcion

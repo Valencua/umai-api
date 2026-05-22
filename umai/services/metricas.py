@@ -6,7 +6,7 @@ from umai.constants import ESTADO_RESERVA_CONFIRMADO, DIAS_SEMANA, FORMATO_FECHA
 
 def _rango_utc_dia(dia) -> tuple[str, str]:
     inicio_local = datetime.combine(dia, datetime.min.time(), tzinfo=TZ_LOCAL)
-    fin_local = datetime.combine(dia + timedelta(days=1), datetime.min.time(), tzinfo=TZ_LOCAL)
+    fin_local = inicio_local + timedelta(days=1)
     inicio_utc = a_utc(inicio_local).strftime(FORMATO_FECHA_STR_Z)
     fin_utc = a_utc(fin_local).strftime(FORMATO_FECHA_STR_Z)
     return inicio_utc, fin_utc

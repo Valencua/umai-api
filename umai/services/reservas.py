@@ -40,15 +40,24 @@ def _obtener_o_crear_cliente(nombre: str, email: str, telefono: str) -> int:
 
     return insertado.data[0]['cliente_id']
 
-def _parsear_fecha_utc(fecha_raw) -> datetime:
+
+#Tuve un problema de que parece que Supabase te puede cargar distintos formatos de fechas,
+#entonces evaluamos cada caso y lo parseamos para que quede como deseamos
+def _parsear_fecha_utc(fecha_raw) -> datetime: 
     if isinstance(fecha_raw, str):
-        fecha = datetime.strptime(fecha_raw.strip(), FORMATO_FECHA_STR_Z)
+        s = fecha_raw.strip().replace(' ', 'T')
+        if '+00:00' in s:
+            s = s.replace('+00:00', 'Z')
+        elif s.endswith('+00'):
+            s = s.replace('+00', 'Z')
+        
+        if s.endswith('Z') and '.' not in s.split('T')[-1]:
+            s = s.replace('Z', '.000000Z')
+        fecha = datetime.strptime(s, FORMATO_FECHA_STR_Z)
     else:
         fecha = fecha_raw
-
     if fecha.tzinfo is None:
         fecha = fecha.replace(tzinfo=timezone.utc)
-
     return fecha
 
 def _tiene_reserva_activa(email: str) -> bool:

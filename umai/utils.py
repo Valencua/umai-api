@@ -11,8 +11,6 @@ from zoneinfo import ZoneInfo
 from umai.constants import (
     ERROR_CODE_INVALID_MAX_VALUE,
     ERROR_CODE_INVALID_MIN_VALUE,
-    FORMATO_FECHA,
-    FORMATO_HORARIO,
     HORA_APERTURA,
     HORA_CIERRE,
     MINUTO_APERTURA,
@@ -20,6 +18,7 @@ from umai.constants import (
     TELEFONO_MAX_DIGITOS,
     TELEFONO_MIN_DIGITOS,
     TZ_LOCAL_NAME,
+    FORMATO_FECHA_STR_zoneinfo,
 )
 
 logger = logging.getLogger(__name__)
@@ -157,10 +156,6 @@ def validar_telefono(telefono: str) -> str:
 
     return telefono
 
-def combinar_fecha_horario(fecha: str, horario: str) -> datetime:
-    dt_naive = datetime.strptime(f'{fecha} {horario}', f'{FORMATO_FECHA} {FORMATO_HORARIO}')
-    return dt_naive.replace(tzinfo=TZ_LOCAL)
-
 def a_utc(dt: datetime) -> datetime:
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=TZ_LOCAL)
@@ -172,8 +167,10 @@ def a_local(dt: datetime) -> datetime:
     return dt.astimezone(TZ_LOCAL)
 
 def formatear_rfc3339(dt: datetime) -> str:
-    local = a_local(dt) if dt.tzinfo else dt.replace(tzinfo=TZ_LOCAL)
-    return local.isoformat(timespec='microseconds')
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    local = a_local(dt)
+    return local.strftime(FORMATO_FECHA_STR_zoneinfo)
 
 def horario_en_rango_servicio(hora: int, minuto: int) -> bool:
     minutos = hora * 60 + minuto

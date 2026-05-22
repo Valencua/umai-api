@@ -1,9 +1,8 @@
 import logging
 import uuid as uuid_lib
-
+from datetime import datetime, timezone
 from umai.constants import (
-    FORMATO_FECHA,
-    FORMATO_HORARIO,
+    FORMATO_FECHA_STR_zoneinfo,
     HORA_APERTURA,
     HORA_CIERRE,
     MAX_PERSONAS,
@@ -13,10 +12,16 @@ from umai.constants import (
     TELEFONO_MAX_LONGITUD,
     TELEFONO_MIN_LONGITUD,
     ERROR_CODE_UUID_CODIGO_INVALIDO,
+    ERROR_CODE_INVALID_FECHA,
+    ERROR_CODE_INVALID_HORARIO,
+    FUNCIONES_VALIDAS,
+    ERROR_CODE_MISSING_FECHA,
+    ERROR_CODE_INVALID_FORMAT_FECHA,
+    FORMATO_FECHA
+
 )
 from umai.utils import (
     a_utc,
-    combinar_fecha_horario,
     construir_error_api,
     fecha_hora_futura,
     horario_en_rango_servicio,
@@ -28,6 +33,7 @@ from umai.utils import (
     validar_minimo,
     validar_telefono,
     validar_solo_letras,
+    TZ_LOCAL,
 )
 
 logger = logging.getLogger(__name__)
@@ -52,7 +58,7 @@ def validar_uuid_codigo(uuid_codigo: str) -> str:
 
 def validar_crear_reserva(body: dict) -> dict:
     errores = []
-    campos_requeridos = ['nombre', 'email', 'telefono', 'fecha', 'horario', 'cantidad_personas']
+    campos_requeridos = ['nombre', 'email', 'telefono', 'fecha', 'cantidad_personas']
 
     for campo in campos_requeridos:
         if campo not in body or body[campo] in (None, ''):
@@ -69,7 +75,6 @@ def validar_crear_reserva(body: dict) -> dict:
     email = body['email'].strip().lower()
     telefono = body['telefono'].strip()
     fecha = body['fecha'].strip()
-    horario = body['horario'].strip()
 
     try:
         validar_longitud(nombre, 'nombre', min=3, max=100)
@@ -103,12 +108,11 @@ def validar_crear_reserva(body: dict) -> dict:
 
     fecha_hora_local = None
     try:
-        validar_formato_fecha(fecha, FORMATO_FECHA, 'fecha')
-        horario_dt = validar_formato_fecha(horario, FORMATO_HORARIO, 'horario')
+        obj_fecha = validar_formato_fecha(fecha, FORMATO_FECHA_STR_zoneinfo, 'fecha')
 
-        if not horario_en_rango_servicio(horario_dt.hour, horario_dt.minute):
+        if not horario_en_rango_servicio(obj_fecha.hour, obj_fecha.minute):
             raise ValueError(construir_error_api(
-                code='invalid.horario.range',
+                code=ERROR_CODE_INVALID_HORARIO,
                 message="Horario fuera del rango de atención",
                 description=(
                     f'El horario debe estar entre las {HORA_APERTURA:02d}:{MINUTO_APERTURA:02d} '
@@ -116,11 +120,11 @@ def validar_crear_reserva(body: dict) -> dict:
                 )
             ))
 
-        fecha_hora_local = combinar_fecha_horario(fecha, horario)
+        fecha_hora_local = obj_fecha.astimezone(TZ_LOCAL) #Nada más quiero asegurar que el ZoneTime figure como GMT-3
 
         if not fecha_hora_futura(fecha_hora_local):
             raise ValueError(construir_error_api(
-                code='invalid.fecha.past',
+                code=ERROR_CODE_INVALID_FECHA,
                 message='Fecha y horario en el pasado',
                 description='La reserva debe ser para una fecha y horario futuros'
             ))
@@ -139,8 +143,49 @@ def validar_crear_reserva(body: dict) -> dict:
         'email': email,
         'telefono': telefono,
         'fecha': fecha,
-        'horario': horario,
         'fecha_hora_local': fecha_hora_local,
         'fecha_hora_utc': a_utc(fecha_hora_local),
         'cantidad_personas': cantidad_personas,
     }
+
+def validar_fecha_disponibilidad(fecha: str):
+    if not fecha or not fecha.strip():
+        raise ValueError(construir_error_api(
+            code=ERROR_CODE_MISSING_FECHA,
+            message='Fecha requerida',
+            description='Debe enviar la fecha en formato YYYY-MM-DD'
+        ))
+    try:
+        fecha_obj = datetime.strptime(fecha.strip(), FORMATO_FECHA).date()
+    except ValueError:
+        raise ValueError(construir_error_api(
+            code=ERROR_CODE_INVALID_FORMAT_FECHA,
+            message='Fecha inválida',
+            description='La fecha debe tener formato YYYY-MM-DD'
+        ))
+    hoy = datetime.now(TZ_LOCAL).date()
+
+    if fecha_obj < hoy:
+        raise ValueError(construir_error_api(
+            code=ERROR_CODE_INVALID_FECHA,
+            message='Fecha inválida',
+            description='No se puede consultar disponibilidad para fechas pasadas'
+        ))
+
+    return fecha_obj
+
+def validar_funcion_reserva(funcion: str) -> str:
+    if not funcion or not funcion.strip():
+        raise ValueError(construir_error_api(
+            code='required.funcion',
+            message='funcion es requerida',
+            description='Debe indicar ?funcion=cancelar o ?funcion=confirmar'
+        ))
+    funcion = funcion.strip().lower()
+    if funcion not in FUNCIONES_VALIDAS:
+        raise ValueError(construir_error_api(
+            code='invalid.funcion',
+            message='funcion invalida',
+            description="Los valores permitidos son: 'cancelar', 'confirmar'"
+        ))
+    return funcion

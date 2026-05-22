@@ -60,27 +60,24 @@ def delete_reseña(resena_id):
 @reseñas_bp.route('/', methods=['POST'])
 def post_reseña():
     body = request.get_json(silent=True)
-
     if body is None:
         return jsonify(construir_error_api(
             code=ERROR_CODE_INVALID_BODY,
             message='Cuerpo de la solicitud inválido',
             description='El cuerpo debe ser un JSON válido con Content-Type application/json'
         )), 400
-
     try:
-        data   = validar_crear_reseña(body)
+        data = validar_crear_reseña(body)
         reseña = crear_reseña(data)
     except ValueError as e:
         status = e.args[1] if len(e.args) > 1 else 400
         return jsonify(e.args[0]), status
-    except Exception as e:
+    except Exception:
         return jsonify(construir_error_api(
             code=ERROR_CODE_INTERNAL_SERVER,
             message='Error al crear la reseña',
             description='Ocurrió un error inesperado'
         )), 500
-
     return jsonify(reseña), 201
 
 @reseñas_bp.route('/<string:resena_id>', methods=['PATCH'])

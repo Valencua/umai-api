@@ -1,8 +1,7 @@
 from db import supabase
-from datetime import datetime
+from datetime import datetime, timezone
 from umai.utils import a_utc, construir_error_api
-
-
+from umai.constants import ESTADO_RESERVA_CONFIRMADO
 
 
 def listar_reseñas(estado: bool)-> list:
@@ -34,54 +33,52 @@ def eliminar_reseña(resena_id: int) -> None:
         .execute()
     
 def crear_reseña(data: dict) -> dict:
-
-    cliente = supabase.table('clientes') \
-        .select('cliente_id') \
-        .eq('email', data['email']) \
+    cliente = (
+        supabase.table('clientes')
+        .select('cliente_id')
+        .eq('email', data['email'])
         .execute()
-
+    )
     if not cliente.data:
         raise ValueError(construir_error_api(
             code='not_found.cliente',
             message='Cliente no encontrado',
             description=f"No existe un cliente con el email '{data['email']}'"
         ), 404)
-
     cliente_id = cliente.data[0]['cliente_id']
-
-    reserva = supabase.table('reservas') \
-        .select('reserva_id') \
-        .eq('cliente_id', cliente_id) \
-        .eq('estado', 'confirmado') \
+    reserva = (
+        supabase.table('reservas')
+        .select('reserva_id')
+        .eq('cliente_id', cliente_id)
+        .eq('estado', ESTADO_RESERVA_CONFIRMADO)
         .execute()
-
+    )
     if not reserva.data:
         raise ValueError(construir_error_api(
             code='forbidden.resena.sin_reserva',
             message='Sin reserva confirmada',
             description='Necesitás al menos una visita confirmada para dejar una reseña'
         ), 403)
-
-    ya_reseño = supabase.table('reseñas') \
-        .select('reseña_id') \
-        .eq('cliente_id', cliente_id) \
+    ya_reseño = (
+        supabase.table('reseñas')
+        .select('reseña_id')
+        .eq('cliente_id', cliente_id)
         .execute()
-
+    )
     if ya_reseño.data:
         raise ValueError(construir_error_api(
             code='conflict.resena.duplicada',
             message='Ya existe una reseña',
             description='Ya dejaste una reseña anteriormente'
         ), 409)
-    
+    creado_en = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%S.%fZ')
     response = supabase.table('reseñas').insert({
-        'cliente_id':  cliente_id,
-        'rating':      data['rating'],
+        'cliente_id': cliente_id,
+        'rating': data['rating'],
         'descripcion': data['descripcion'],
-        'estado':      False,
-        'creado_en':   a_utc(datetime.now()).replace(microsecond=0).isoformat().replace('+00:00', 'Z')
+        'estado': False,
+        'creado_en': creado_en,
     }).execute()
-
     return response.data[0]
 
 

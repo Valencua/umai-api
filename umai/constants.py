@@ -4,6 +4,9 @@ FORMATO_FECHA = '%Y-%m-%d'
 FORMATO_FECHA_STR_Z = '%Y-%m-%dT%H:%M:%S.%fZ'
 FORMATO_FECHA_STR_zoneinfo = '%Y-%m-%dT%H:%M:%S.%f%z'
 
+FORMATO_HORARIO = '%H:%M'
+
+
 # Horario de atención (el cierre cruza medianoche: 18:30 → 01:00)
 HORA_APERTURA = 18
 MINUTO_APERTURA = 30
@@ -67,4 +70,14 @@ HORARIOS_DISPONIBLES = [
     '18:30','19:00','19:30','20:00', '20:30', '21:00', '21:30', '22:00', '22:30', '23:00', '23:30', '00:00', '00:30', '01:00'   
 ]
 FUNCIONES_VALIDAS = {'cancelar', 'confirmar'}
+
+DIAS_SEMANA = {
+    'Monday':    'Lunes',
+    'Tuesday':   'Martes',
+    'Wednesday': 'Miércoles',
+    'Thursday':  'Jueves',
+    'Friday':    'Viernes',
+    'Saturday':  'Sábado',
+    'Sunday':    'Domingo'
+}
 

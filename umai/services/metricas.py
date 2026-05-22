@@ -1,55 +1,46 @@
 
 from db import supabase
-from datetime import datetime, timezone, timedelta
-from umai.utils import a_utc, TZ_LOCAL, a_local
-from umai.constants import ESTADO_RESERVA_PENDIENTE, ESTADO_RESERVA_CONFIRMADO, FORMATO_FECHA
+from datetime import datetime, timedelta
+from umai.utils import a_utc, TZ_LOCAL
+from umai.constants import ESTADO_RESERVA_CONFIRMADO, DIAS_SEMANA, FORMATO_FECHA_STR_Z, ESTADO_RESERVA_CANCELADO, ESTADO_RESERVA_PENDIENTE
+
+def _rango_utc_dia(dia) -> tuple[str, str]:
+    inicio_local = datetime.combine(dia, datetime.min.time(), tzinfo=TZ_LOCAL)
+    fin_local = inicio_local + timedelta(days=1)
+    inicio_utc = a_utc(inicio_local).strftime(FORMATO_FECHA_STR_Z)
+    fin_utc = a_utc(fin_local).strftime(FORMATO_FECHA_STR_Z)
+    return inicio_utc, fin_utc
 
 def obtener_rating_promedio() -> dict:
     response = supabase.table('reseñas') \
         .select('rating') \
         .eq('estado', True) \
         .execute()
-
     reseñas = response.data
-
     if not reseñas:
         return {'promedio': 0}
-
     promedio = round(sum(r['rating'] for r in reseñas) / len(reseñas), 1)
-
     return {'promedio': promedio}
 
-def obtener_reservas_hoy():
-    ahora = datetime.now(TZ_LOCAL)
-    inicio_dia_local = ahora.replace(hour=0, minute=0, second=0, microsecond=0)
-    fin_dia_local    = inicio_dia_local + timedelta(days=1)
-
-    inicio_utc = a_utc(inicio_dia_local).isoformat().replace('+00:00', 'Z')
-    fin_utc    = a_utc(fin_dia_local).isoformat().replace('+00:00', 'Z')
-
+def obtener_reservas_hoy() -> dict:
+    inicio_iso, fin_iso = _rango_utc_dia(datetime.now(TZ_LOCAL).date())
     response = (
-        supabase.from_('reservas')
-        .select('*')
-        .gte('fecha', inicio_utc)
-        .lt('fecha', fin_utc)
+        supabase.table('reservas')
+        .select('reserva_id')
+        .gte('fecha', inicio_iso)
+        .lt('fecha', fin_iso)
         .execute()
     )
-    return {'reservas': len(response.data)}
+    return {'reservas_hoy': len(response.data)}
 
 def obtener_cancelaciones_hoy() -> dict:
-    ahora = datetime.now(TZ_LOCAL)
-    inicio_dia_local = ahora.replace(hour=0, minute=0, second=0, microsecond=0)
-    fin_dia_local    = inicio_dia_local + timedelta(days=1)
-
-    inicio_utc = a_utc(inicio_dia_local).isoformat().replace('+00:00', 'Z')
-    fin_utc    = a_utc(fin_dia_local).isoformat().replace('+00:00', 'Z')
+    inicio_iso, fin_iso = _rango_utc_dia(datetime.now(TZ_LOCAL).date())
     response = supabase.table('reservas') \
         .select('reserva_id') \
-        .eq('estado', 'cancelado') \
-        .gte('fecha', inicio_utc) \
-        .lt('fecha', fin_utc) \
+        .eq('estado', ESTADO_RESERVA_CANCELADO) \
+        .gte('fecha', inicio_iso) \
+        .lt('fecha', fin_iso) \
         .execute()
-
     return {'cancelaciones': len(response.data)}
 
 def obtener_metricas_reservas() -> dict:
@@ -58,64 +49,64 @@ def obtener_metricas_reservas() -> dict:
         .select('estado')
         .execute()
     )
-
     reservas = response.data
-
+    vacio = {
+        'total': 0,
+        'visitaron': {'cantidad': 0, 'porcentaje': 0},
+        'canceladas': {'cantidad': 0, 'porcentaje': 0},
+        'pendientes': {'cantidad': 0, 'porcentaje': 0},
+    }
     if not reservas:
-        return {
-            'total': 0,
-            'visitaron':  {'cantidad': 0, 'porcentaje': 0},
-            'canceladas': {'cantidad': 0, 'porcentaje': 0},
-            'pendiente':    {'cantidad': 0, 'porcentaje': 0}
-        }
-
-    total      = len(reservas)
-    visitaron  = sum(1 for r in reservas if r['estado'] == 'confirmado')
-    canceladas = sum(1 for r in reservas if r['estado'] == 'cancelado')
-    pendiente    = sum(1 for r in reservas if r['estado'] == 'pendiente')
-
-    def porcentaje(cantidad):
+        return vacio
+    total = len(reservas) 
+    visitaron = sum(1 for r in reservas if r['estado'] == ESTADO_RESERVA_CONFIRMADO)
+    canceladas = sum(1 for r in reservas if r['estado'] == ESTADO_RESERVA_CANCELADO)
+    pendientes = sum(1 for r in reservas if r['estado'] == ESTADO_RESERVA_PENDIENTE)
+    def porcentaje(cantidad: int) -> int:
         return round(cantidad / total * 100)
-
     return {
         'total': total,
-        'visitaron':  {'cantidad': visitaron,  'porcentaje': porcentaje(visitaron)},
+        'visitaron': {'cantidad': visitaron, 'porcentaje': porcentaje(visitaron)},
         'canceladas': {'cantidad': canceladas, 'porcentaje': porcentaje(canceladas)},
-        'pendientes':    {'cantidad': pendiente,    'porcentaje': porcentaje(pendiente)}
+        'pendientes': {'cantidad': pendientes, 'porcentaje': porcentaje(pendientes)},
     }
 
-def obtener_personas_hoy():
-    try:
-        ahora = datetime.now(TZ_LOCAL)
-        inicio_dia_local = ahora.replace(hour=0, minute=0, second=0, microsecond=0)
-        fin_dia_local    = inicio_dia_local + timedelta(days=1)
-
-        inicio_utc = a_utc(inicio_dia_local).isoformat().replace('+00:00', 'Z')
-        fin_utc    = a_utc(fin_dia_local).isoformat().replace('+00:00', 'Z')
-
-        response = (
-            supabase.from_('reservas')
-            .select('cantidad_personas')
-            .gte('fecha', inicio_utc)
-            .lt('fecha', fin_utc)
-            .eq('estado', ESTADO_RESERVA_CONFIRMADO)
+def obtener_reservas_ultimos_7_dias() -> list:
+    hoy_local = datetime.now(TZ_LOCAL).date()
+    resultado = []
+    for i in range(6, -1, -1):
+        dia_local = hoy_local - timedelta(days=i)
+        inicio_iso, fin_iso = _rango_utc_dia(dia_local)
+        response = supabase.table('reservas') \
+            .select('reserva_id') \
+            .gte('fecha', inicio_iso) \
+            .lt('fecha', fin_iso) \
             .execute()
-        )
-        personas_hoy = 0
-        for reserva in response.data:
-            personas_hoy += reserva['cantidad_personas']
-        
-        return {'personas': personas_hoy}
-    except Exception:
-        return None
+        resultado.append({
+            'dia': DIAS_SEMANA[dia_local.strftime('%A')],
+            'reservas': len(response.data),
+        })
+    return resultado
 
-DIAS_SEMANA = {
-    'Monday':    'Lunes',
-    'Tuesday':   'Martes',
-    'Wednesday': 'Miércoles',
-    'Thursday':  'Jueves',
-    'Friday':    'Viernes',
-    'Saturday':  'Sábado',
-    'Sunday':    'Domingo'
-}
+def obtener_personas_hoy() -> dict:
+    inicio_iso, fin_iso = _rango_utc_dia(datetime.now(TZ_LOCAL).date())
+    response = (
+        supabase.table('reservas')
+        .select('cantidad_personas')
+        .gte('fecha', inicio_iso)
+        .lt('fecha', fin_iso)
+        .eq('estado', ESTADO_RESERVA_CONFIRMADO)
+        .execute()
+    )
+    personas_hoy = sum(r['cantidad_personas'] for r in response.data)
+    return {'personas_hoy': personas_hoy}
 
+def obtener_dashboard() -> dict:
+    return {
+        'rating': obtener_rating_promedio(),
+        'reservas_hoy': obtener_reservas_hoy(),
+        'cancelaciones': obtener_cancelaciones_hoy(),
+        'metricas_reservas': obtener_metricas_reservas(),
+        'personas_hoy': obtener_personas_hoy(),
+        'reservas_semana': obtener_reservas_ultimos_7_dias(),
+    }

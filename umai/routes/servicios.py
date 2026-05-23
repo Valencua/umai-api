@@ -5,7 +5,8 @@ from umai.validators.servicios import validar_crear_servicio, validar_actualizar
 
 from umai.constants import (
     ERROR_CODE_INVALID_BODY, 
-    ERROR_CODE_INTERNAL_SERVER
+    ERROR_CODE_INTERNAL_SERVER,
+    ERROR_CODES_CONFLICTO
     )
 
 

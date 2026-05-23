@@ -2,7 +2,7 @@ from flask import Blueprint, jsonify, request
 from umai.utils import construir_error_api,validar_entero,validar_minimo
 from umai.constants import ERROR_CODE_INVALID_BODY, ERROR_CODES_CONFLICTO, ERROR_CODE_INTERNAL_SERVER, ERROR_CODE_RESERVA_NO_ENCONTRADA
 from umai.services.reservas import crear_reserva, obtener_reservas, cancelar_reserva_por_codigo, confirmar_reserva_por_codigo, obtener_disponibilidad
-from umai.validators.reservas import validar_crear_reserva, validar_uuid_codigo,validar_funcion_reserva, validar_fecha_disponibilidad
+from umai.validators.reservas import validar_crear_reserva, validar_uuid_codigo,validar_patch_reserva, validar_fecha_disponibilidad
 
 reservas_bp = Blueprint('reservas', __name__)
 
@@ -36,20 +36,24 @@ def post_reserva():
             description='Hubo un error interno'
         )), 500
 
-
 @reservas_bp.route('/<uuid_codigo>', methods=['PATCH'])
 def patch_reserva(uuid_codigo):
-    funcion = request.args.get('funcion')
+    body = request.get_json(silent=True)
     try:
-        funcion = validar_funcion_reserva(funcion)
-        codigo = validar_uuid_codigo(uuid_codigo)
-        if funcion == 'confirmar':
-            reserva = confirmar_reserva_por_codigo(codigo)
+        params = validar_patch_reserva(uuid_codigo, body)
+        if params['funcion'] == 'confirmar':
+            reserva = confirmar_reserva_por_codigo(params['uuid_codigo'])
         else:
-            reserva = cancelar_reserva_por_codigo(codigo)
-        return jsonify(reserva), 200
+            reserva = cancelar_reserva_por_codigo(params['uuid_codigo'])
+        return jsonify({'data': reserva, 'status': 'success'}), 200
     except ValueError as e:
         error = e.args[0]
+        if not isinstance(error, dict) or 'errors' not in error:
+            return jsonify(construir_error_api(
+                code=ERROR_CODE_INTERNAL_SERVER,
+                message='Error al procesar la solicitud',
+                description='Hubo un error interno'
+            )), 500
         codigo_error = error['errors'][0]['code']
         if codigo_error == ERROR_CODE_RESERVA_NO_ENCONTRADA:
             return jsonify(error), 404

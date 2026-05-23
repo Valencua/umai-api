@@ -230,24 +230,20 @@ def crear_reserva(data: dict) -> dict:
 
 def confirmar_reserva_por_codigo(uuid_codigo: str) -> dict:
     reserva, datos_cliente = _obtener_reserva_y_cliente_por_uuid(uuid_codigo)
-
     if reserva['estado'] == ESTADO_RESERVA_CANCELADO:
         raise ValueError(construir_error_api(
             code=ERROR_CODE_RESERVA_CANCELADA,
             message='No se puede confirmar asistencia',
             description='La reserva esta cancelada y no puede marcarse como asistida'
         ))
-
     if _parsear_fecha_utc(reserva['fecha']) < datetime.now(timezone.utc):
         raise ValueError(construir_error_api(
             code=ERROR_CODE_RESERVA_TURNO_PASADO,
             message='No se puede confirmar la reserva',
             description='El turno de la reserva ya finalizo',
         ))
-
     if reserva['estado'] == ESTADO_RESERVA_CONFIRMADO:
         return _serializar_reserva(reserva, datos_cliente)
-
     actualizado = execute(
         """
         UPDATE reservas
@@ -258,23 +254,17 @@ def confirmar_reserva_por_codigo(uuid_codigo: str) -> dict:
         (ESTADO_RESERVA_CONFIRMADO, uuid_codigo),
         returning=True,
     )
-
     return _serializar_reserva(dict(actualizado), datos_cliente)
-
-
 def cancelar_reserva_por_codigo(uuid_codigo: str) -> dict:
     reserva, datos_cliente = _obtener_reserva_y_cliente_por_uuid(uuid_codigo)
-
     if reserva['estado'] == ESTADO_RESERVA_CANCELADO:
         return _serializar_reserva(reserva, datos_cliente)
-
     if reserva['estado'] == ESTADO_RESERVA_CONFIRMADO:
         raise ValueError(construir_error_api(
             code=ERROR_CODE_RESERVA_YA_CONFIRMADA,
             message='No se puede cancelar la reserva',
             description='La reserva ya fue confirmada y no puede cancelarse'
         ))
-
     actualizado = execute(
         """
         UPDATE reservas
@@ -285,7 +275,6 @@ def cancelar_reserva_por_codigo(uuid_codigo: str) -> dict:
         (ESTADO_RESERVA_CANCELADO, uuid_codigo),
         returning=True,
     )
-
     return _serializar_reserva(dict(actualizado), datos_cliente)
 
 

@@ -17,7 +17,8 @@ from umai.constants import (
     FUNCIONES_VALIDAS,
     ERROR_CODE_MISSING_FECHA,
     ERROR_CODE_INVALID_FORMAT_FECHA,
-    FORMATO_FECHA
+    FORMATO_FECHA,
+    ERROR_CODE_INVALID_BODY
 
 )
 from umai.utils import (
@@ -174,18 +175,31 @@ def validar_fecha_disponibilidad(fecha: str):
 
     return fecha_obj
 
-def validar_funcion_reserva(funcion: str) -> str:
-    if not funcion or not funcion.strip():
+def validar_patch_reserva(uuid_codigo: str, body: dict | None) -> dict:
+    if body is None or not isinstance(body, dict):
+        raise ValueError(construir_error_api(
+            code=ERROR_CODE_INVALID_BODY,
+            message='Cuerpo de la solicitud invalido',
+            description="El body debe ser un JSON con el campo 'funcion'"
+        ))
+
+    funcion = body.get('funcion')
+    if not funcion or not str(funcion).strip():
         raise ValueError(construir_error_api(
             code='required.funcion',
             message='funcion es requerida',
-            description='Debe indicar ?funcion=cancelar o ?funcion=confirmar'
+            description="El campo 'funcion' es obligatorio en el body"
         ))
-    funcion = funcion.strip().lower()
+
+    funcion = str(funcion).strip().lower()
     if funcion not in FUNCIONES_VALIDAS:
         raise ValueError(construir_error_api(
             code='invalid.funcion',
             message='funcion invalida',
             description="Los valores permitidos son: 'cancelar', 'confirmar'"
         ))
-    return funcion
+
+    return {
+        'uuid_codigo': validar_uuid_codigo(uuid_codigo),
+        'funcion': funcion,
+    }

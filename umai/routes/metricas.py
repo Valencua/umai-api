@@ -6,7 +6,7 @@ from umai.constants import ERROR_CODE_INTERNAL_SERVER
 metricas_bp = Blueprint('metricas', __name__)
 
 @metricas_bp.route('/dashboard', methods=['GET'])
-def get_dashboard():
+def obtener_dashboard():
     try:
         dashboard = obtener_dashboard()
     except Exception as e:

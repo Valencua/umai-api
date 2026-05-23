@@ -1,25 +1,64 @@
 from db import supabase
+from db.connection import execute, fetch_all, fetch_one
 import uuid
-from umai.utils import construir_error_api
 
+from umai.utils import construir_error_api
 from umai.constants import (
     ERROR_CODE_ETIQUETAS_INVALIDAS,
-    ERROR_CODE_PLATO_DUPLICADO
+    ERROR_CODE_PLATO_DUPLICADO,
 )
 
 
-def crear_plato(data: dict) -> dict:
+def _validar_etiquetas_ids(etiquetas: list) -> None:
+    if not etiquetas:
+        return
 
-    existente = (
-        supabase
-        .table('platos')
-        .select('plato_id')
-        .eq('nombre', data['nombre'])
-        .execute()
+    placeholders = ','.join(['%s'] * len(etiquetas))
+    rows = fetch_all(
+        f"""
+        SELECT etiqueta_id
+        FROM etiquetas
+        WHERE etiqueta_id IN ({placeholders})
+        """,
+        tuple(etiquetas),
     )
 
-    if existente.data:
+    ids_existentes = [row['etiqueta_id'] for row in rows]
+    etiquetas_invalidas = [
+        etiqueta_id for etiqueta_id in etiquetas
+        if etiqueta_id not in ids_existentes
+    ]
 
+    if etiquetas_invalidas:
+        raise ValueError(construir_error_api(
+            code=ERROR_CODE_ETIQUETAS_INVALIDAS,
+            message='Etiquetas inexistentes',
+            description=f'Las siguientes etiquetas no existen: {etiquetas_invalidas}'
+        ))
+
+
+def _insertar_plato_etiquetas(plato_id: int, etiquetas: list) -> None:
+    for etiqueta_id in etiquetas:
+        execute(
+            """
+            INSERT INTO plato_etiquetas (plato_id, etiqueta_id)
+            VALUES (%s, %s)
+            """,
+            (plato_id, etiqueta_id),
+        )
+
+
+def crear_plato(data: dict) -> dict:
+    existente = fetch_one(
+        """
+        SELECT plato_id
+        FROM platos
+        WHERE nombre = %s
+        """,
+        (data['nombre'],),
+    )
+
+    if existente:
         raise ValueError(construir_error_api(
             code=ERROR_CODE_PLATO_DUPLICADO,
             message='Plato ya existente',
@@ -27,42 +66,11 @@ def crear_plato(data: dict) -> dict:
         ))
 
     etiquetas = data.get('etiquetas', [])
-
-    if etiquetas:
-
-        etiquetas_existentes = (
-            supabase
-            .table('etiquetas')
-            .select('etiqueta_id')
-            .in_('etiqueta_id', etiquetas)
-            .execute()
-        )
-
-        ids_existentes = [
-            etiqueta['etiqueta_id']
-            for etiqueta in etiquetas_existentes.data
-        ]
-
-        etiquetas_invalidas = [
-            etiqueta_id
-            for etiqueta_id in etiquetas
-            if etiqueta_id not in ids_existentes
-        ]
-
-        if etiquetas_invalidas:
-
-            raise ValueError(construir_error_api(
-                code=ERROR_CODE_ETIQUETAS_INVALIDAS,
-                message='Etiquetas inexistentes',
-                description=f'Las siguientes etiquetas no existen: {etiquetas_invalidas}'
-            ))
+    _validar_etiquetas_ids(etiquetas)
 
     foto = data['foto']
-
     extension = foto.filename.split('.')[-1]
-
     nombre_archivo = f'{uuid.uuid4()}.{extension}'
-
     contenido_imagen = foto.read()
 
     supabase.storage.from_('platos').upload(
@@ -80,101 +88,108 @@ def crear_plato(data: dict) -> dict:
         .get_public_url(nombre_archivo)
     )
 
-    response = (
-        supabase
-        .table('platos')
-        .insert({
-            'nombre': data['nombre'],
-            'descripcion': data['descripcion'],
-            'precio': data['precio'],
-            'foto': foto_url,
-        })
-        .execute()
+    plato = execute(
+        """
+        INSERT INTO platos (nombre, descripcion, precio, foto)
+        VALUES (%s, %s, %s, %s)
+        RETURNING *
+        """,
+        (
+            data['nombre'],
+            data['descripcion'],
+            data['precio'],
+            foto_url,
+        ),
+        returning=True,
     )
 
-    plato = response.data[0]
+    plato = dict(plato)
 
     if etiquetas:
-
-        relaciones = [
-            {
-                'plato_id': plato['plato_id'],
-                'etiqueta_id': etiqueta_id,
-            }
-            for etiqueta_id in etiquetas
-        ]
-
-        (
-            supabase
-            .table('plato_etiquetas')
-            .insert(relaciones)
-            .execute()
-        )
+        _insertar_plato_etiquetas(plato['plato_id'], etiquetas)
 
     return plato
 
+
 def traer_todos_los_platos():
-    platos_resp = (
-        supabase.table('platos')
-        .select('*')
-        .execute()
+    rows = fetch_all(
+        """
+        SELECT *
+        FROM platos
+        """
     )
-    return platos_resp.data
-    
+    return [dict(row) for row in rows]
+
+
 def eliminar_plato(plato_id: int) -> None:
+    existente = fetch_one(
+        """
+        SELECT plato_id, foto
+        FROM platos
+        WHERE plato_id = %s
+        """,
+        (plato_id,),
+    )
 
-    existente = supabase.table('platos') \
-        .select('plato_id, foto') \
-        .eq('plato_id', plato_id) \
-        .execute()
-
-    if not existente.data:
+    if not existente:
         raise ValueError(construir_error_api(
             code='not_found.plato',
             message='Plato no encontrado',
             description=f"No existe un plato con id '{plato_id}'"
         ), 404)
 
-    foto_url = existente.data[0]['foto']
+    foto_url = existente['foto']
     if foto_url:
         path = foto_url.split('/platos/')[-1]
         supabase.storage.from_('platos').remove([path])
 
-    supabase.table('plato_etiquetas') \
-        .delete() \
-        .eq('plato_id', plato_id) \
-        .execute()
+    execute(
+        """
+        DELETE FROM plato_etiquetas
+        WHERE plato_id = %s
+        """,
+        (plato_id,),
+    )
 
-    supabase.table('platos') \
-        .delete() \
-        .eq('plato_id', plato_id) \
-        .execute()
-    
+    execute(
+        """
+        DELETE FROM platos
+        WHERE plato_id = %s
+        """,
+        (plato_id,),
+    )
+
 
 def actualizar_plato(plato_id: int, data: dict) -> dict:
+    plato_actual = fetch_one(
+        """
+        SELECT *
+        FROM platos
+        WHERE plato_id = %s
+        """,
+        (plato_id,),
+    )
 
-    existente = supabase.table('platos') \
-        .select('*') \
-        .eq('plato_id', plato_id) \
-        .execute()
-
-    if not existente.data:
+    if not plato_actual:
         raise ValueError(construir_error_api(
             code='not_found.plato',
             message='Plato no encontrado',
             description=f"No existe un plato con id '{plato_id}'"
         ), 404)
 
-    plato_actual = existente.data[0]
+    plato_actual = dict(plato_actual)
     campos_actualizar = {}
 
     if 'nombre' in data:
-        duplicado = supabase.table('platos') \
-            .select('plato_id') \
-            .eq('nombre', data['nombre']) \
-            .neq('plato_id', plato_id) \
-            .execute()
-        if duplicado.data:
+        duplicado = fetch_one(
+            """
+            SELECT plato_id
+            FROM platos
+            WHERE nombre = %s AND plato_id <> %s
+            """,
+            (data['nombre'], plato_id),
+        )
+        if duplicado:
             raise ValueError(construir_error_api(
                 code=ERROR_CODE_PLATO_DUPLICADO,
                 message='Nombre ya existente',
@@ -207,34 +222,40 @@ def actualizar_plato(plato_id: int, data: dict) -> dict:
 
     if 'etiquetas' in data:
         etiquetas = data['etiquetas']
+        _validar_etiquetas_ids(etiquetas)
 
-        etiquetas_existentes = supabase.table('etiquetas') \
-            .select('etiqueta_id') \
-            .in_('etiqueta_id', etiquetas) \
-            .execute()
-
-        ids_existentes = [e['etiqueta_id'] for e in etiquetas_existentes.data]
-        etiquetas_invalidas = [e for e in etiquetas if e not in ids_existentes]
-
-        if etiquetas_invalidas:
-            raise ValueError(construir_error_api(
-                code=ERROR_CODE_ETIQUETAS_INVALIDAS,
-                message='Etiquetas inexistentes',
-                description=f'Las siguientes etiquetas no existen: {etiquetas_invalidas}'
-            ))
-
-        supabase.table('plato_etiquetas') \
-            .delete() \
-            .eq('plato_id', plato_id) \
-            .execute()
+        execute(
+            """
+            DELETE FROM plato_etiquetas
+            WHERE plato_id = %s
+            """,
+            (plato_id,),
+        )
 
         if etiquetas:
-            relaciones = [{'plato_id': plato_id, 'etiqueta_id': e} for e in etiquetas]
-            supabase.table('plato_etiquetas').insert(relaciones).execute()
+            _insertar_plato_etiquetas(plato_id, etiquetas)
 
-    response = supabase.table('platos') \
-        .update(campos_actualizar) \
-        .eq('plato_id', plato_id) \
-        .execute()
+    if campos_actualizar:
+        sets = ', '.join(f'{columna} = %s' for columna in campos_actualizar)
+        params = list(campos_actualizar.values()) + [plato_id]
+        fila = execute(
+            f"""
+            UPDATE platos
+            SET {sets}
+            WHERE plato_id = %s
+            RETURNING *
+            """,
+            tuple(params),
+            returning=True,
+        )
+        return dict(fila)
 
-    return response.data[0]
+    fila = fetch_one(
+        """
+        SELECT *
+        FROM platos
+        WHERE plato_id = %s
+        """,
+        (plato_id,),
+    )
+    return dict(fila)

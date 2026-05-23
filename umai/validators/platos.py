@@ -1,9 +1,10 @@
 from db import supabase
 from umai.utils import construir_error_api, validar_longitud
-
+from umai.constants import (
+    ERROR_CODE_INVALID_BODY
+)
 
 def validar_crear_plato(body: dict) -> dict:
-
     errores = []
 
     campos_requeridos = [
@@ -11,34 +12,27 @@ def validar_crear_plato(body: dict) -> dict:
         'descripcion',
         'precio'
     ]
-
     for campo in campos_requeridos:
-
         if campo not in body or body[campo] in [None, '']:
 
             errores.append({
                 'campo': campo,
                 'mensaje': f"El campo '{campo}' es obligatorio"
             })
-
     if 'foto' not in body or body['foto'] is None:
 
         errores.append({
             'campo': 'foto',
             'mensaje': 'La foto es obligatoria'
         })
-
     else:
-
         foto = body['foto']
 
         tipos_validos = [
             'image/png',
             'image/jpeg'
         ]
-
         if foto.content_type not in tipos_validos:
-
             errores.append({
                 'campo': 'foto',
                 'mensaje': 'La imagen debe ser PNG o JPG'
@@ -106,7 +100,6 @@ def validar_actualizar_plato(body: dict) -> dict:
     errores = []
     data = {}
 
-    # Todos los campos son opcionales en PATCH
     if 'nombre' in body and body['nombre']:
         try:
             validar_longitud(body['nombre'], 'nombre', min=3, max=100)
@@ -145,7 +138,7 @@ def validar_actualizar_plato(body: dict) -> dict:
 
     if not data:
         errores.append(construir_error_api(
-            code='invalid.body.empty',
+            code=ERROR_CODE_INVALID_BODY,
             message='Sin campos para actualizar',
             description='Debe enviar al menos un campo para actualizar'
         )['errors'][0])

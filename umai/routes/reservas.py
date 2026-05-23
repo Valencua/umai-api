@@ -72,6 +72,12 @@ def get_disponibilidad():
         return jsonify({'data': data, 'status': 'success'}), 200
     except ValueError as e:
         return jsonify(e.args[0]), 400
+    except Exception:
+        return jsonify(construir_error_api(
+            code=ERROR_CODE_INTERNAL_SERVER,
+            message='Error al procesar la solicitud',
+            description='Hubo un error interno'
+        )), 500
     
 @reservas_bp.route('/', methods=['GET'])
 def get_reservas():

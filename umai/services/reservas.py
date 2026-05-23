@@ -2,8 +2,8 @@ import logging
 import uuid
 from datetime import datetime, timezone
 
-from db import supabase
-from umai.constants import ( 
+from db.connection import execute, fetch_all, fetch_one
+from umai.constants import (
     CAPACIDAD_MAXIMA_PERSONAS_POR_TURNO,
     ERROR_CODE_RESERVA_ACTIVA,
     ERROR_CODE_TURNO_LLENO,
@@ -15,61 +15,86 @@ from umai.constants import (
     ERROR_CODE_RESERVA_CANCELADA,
     HORARIOS_DISPONIBLES,
     FORMATO_FECHA_STR_Z,
-    FORMATO_FECHA_STR_zoneinfo,
-    ERROR_CODE_INVALID_FORMAT_FECHA,
     FORMATO_FECHA,
-    ERROR_CODE_INVALID_FECHA,
-    ERROR_CODE_RESERVA_TURNO_PASADO
+    ERROR_CODE_RESERVA_TURNO_PASADO,
 )
-
-from umai.utils import  a_utc, construir_error_api, formatear_rfc3339, TZ_LOCAL, a_local
+from umai.utils import a_utc, construir_error_api, formatear_rfc3339, TZ_LOCAL
 
 logger = logging.getLogger(__name__)
 
 
 def _obtener_reserva_y_cliente_por_uuid(uuid_codigo: str):
-    respuesta = supabase.table('reservas').select('*').eq('uuid_codigo', uuid_codigo).execute()
-    if not respuesta.data:
+    row = fetch_one(
+        """
+        SELECT r.*,
+               c.nombre AS cliente_nombre,
+               c.email AS cliente_email,
+               c.telefono AS cliente_telefono
+        FROM reservas r
+        JOIN clientes c ON c.cliente_id = r.cliente_id
+        WHERE r.uuid_codigo = %s
+        """,
+        (uuid_codigo,),
+    )
+
+    if not row:
         raise ValueError(construir_error_api(
             code=ERROR_CODE_RESERVA_NO_ENCONTRADA,
             message='Reserva no encontrada',
-            description=f'No existe una reserva con el código {uuid_codigo}'
+            description=f'No existe una reserva con el cÃ³digo {uuid_codigo}'
         ))
-    reserva = respuesta.data[0]
-    cliente = supabase.table('clientes').select('nombre, email, telefono').eq('cliente_id', reserva['cliente_id']).execute()
-    datos_cliente = cliente.data[0] if cliente.data else {}
+
+    reserva = dict(row)
+    datos_cliente = {
+        'nombre': reserva.pop('cliente_nombre', None),
+        'email': reserva.pop('cliente_email', None),
+        'telefono': reserva.pop('cliente_telefono', None),
+    }
     return reserva, datos_cliente
 
 
 def _obtener_o_crear_cliente(nombre: str, email: str, telefono: str) -> int:
-    respuesta = supabase.table('clientes').select('cliente_id').eq('email', email).execute()
+    existente = fetch_one(
+        """
+        SELECT cliente_id
+        FROM clientes
+        WHERE email = %s
+        """,
+        (email,),
+    )
 
-    if respuesta.data:
-        cliente_id = respuesta.data[0]['cliente_id']
-        supabase.table('clientes').update({
-            'nombre': nombre,
-            'telefono': telefono,
-        }).eq('cliente_id', cliente_id).execute()
+    if existente:
+        cliente_id = existente['cliente_id']
+        execute(
+            """
+            UPDATE clientes
+            SET nombre = %s, telefono = %s
+            WHERE cliente_id = %s
+            """,
+            (nombre, telefono, cliente_id),
+        )
         return cliente_id
-    insertado = supabase.table('clientes').insert({
-        'nombre': nombre,
-        'email': email,
-        'telefono': telefono,
-    }).execute()
 
-    return insertado.data[0]['cliente_id']
+    fila = execute(
+        """
+        INSERT INTO clientes (nombre, email, telefono)
+        VALUES (%s, %s, %s)
+        RETURNING cliente_id
+        """,
+        (nombre, email, telefono),
+        returning=True,
+    )
+    return fila['cliente_id']
 
 
-#Tuve un problema de que parece que Supabase te puede cargar distintos formatos de fechas,
-#entonces evaluamos cada caso y lo parseamos para que quede como deseamos
-def _parsear_fecha_utc(fecha_raw) -> datetime: 
+def _parsear_fecha_utc(fecha_raw) -> datetime:
     if isinstance(fecha_raw, str):
         s = fecha_raw.strip().replace(' ', 'T')
         if '+00:00' in s:
             s = s.replace('+00:00', 'Z')
         elif s.endswith('+00'):
             s = s.replace('+00', 'Z')
-        
+
         if s.endswith('Z') and '.' not in s.split('T')[-1]:
             s = s.replace('Z', '.000000Z')
         fecha = datetime.strptime(s, FORMATO_FECHA_STR_Z)
@@ -78,6 +103,7 @@ def _parsear_fecha_utc(fecha_raw) -> datetime:
     if fecha.tzinfo is None:
         fecha = fecha.replace(tzinfo=timezone.utc)
     return fecha
+
 
 def _serializar_reserva(reserva: dict, datos_cliente: dict) -> dict:
     fecha_raw = reserva.get('fecha')
@@ -97,39 +123,52 @@ def _serializar_reserva(reserva: dict, datos_cliente: dict) -> dict:
             'nombre': datos_cliente.get('nombre'),
             'email': datos_cliente.get('email'),
             'telefono': datos_cliente.get('telefono'),
-        }
+        },
     }
 
-def _tiene_reserva_activa(email: str) -> bool:
-    respuesta_cliente = supabase.table('clientes').select('cliente_id').eq('email', email).execute()
 
-    if not respuesta_cliente.data:
+def _tiene_reserva_activa(email: str) -> bool:
+    cliente = fetch_one(
+        """
+        SELECT cliente_id
+        FROM clientes
+        WHERE email = %s
+        """,
+        (email,),
+    )
+
+    if not cliente:
         return False
 
-    cliente_id = respuesta_cliente.data[0]['cliente_id']
-    respuesta = supabase.table('reservas').select('fecha, estado').eq(
-        'cliente_id', cliente_id
-    ).neq(
-        'estado', ESTADO_RESERVA_CANCELADO
-    ).execute()
+    reservas = fetch_all(
+        """
+        SELECT fecha, estado
+        FROM reservas
+        WHERE cliente_id = %s AND estado <> %s
+        """,
+        (cliente['cliente_id'], ESTADO_RESERVA_CANCELADO),
+    )
 
     ahora = datetime.now(timezone.utc)
 
-    for reserva in respuesta.data:
+    for reserva in reservas:
         if _parsear_fecha_utc(reserva['fecha']) >= ahora:
-
             return True
 
     return False
-    
-def _personas_reservadas_en_turno(str_fecha_utc: str) -> int:
-    respuesta = supabase.table('reservas').select('cantidad_personas').eq(
-        'fecha', str_fecha_utc
-    ).neq(
-        'estado', ESTADO_RESERVA_CANCELADO
-    ).execute()
 
-    return sum(fila['cantidad_personas'] for fila in respuesta.data)
+
+def _personas_reservadas_en_turno(str_fecha_utc: str) -> int:
+    filas = fetch_all(
+        """
+        SELECT cantidad_personas
+        FROM reservas
+        WHERE fecha = %s AND estado <> %s
+        """,
+        (str_fecha_utc, ESTADO_RESERVA_CANCELADO),
+    )
+    return sum(fila['cantidad_personas'] for fila in filas)
+
 
 def crear_reserva(data: dict) -> dict:
     str_fecha_utc = data['fecha_hora_utc'].strftime(FORMATO_FECHA_STR_Z)
@@ -170,14 +209,24 @@ def crear_reserva(data: dict) -> dict:
     codigo = uuid.uuid4()
     qr_url = f'https://umai.example/qr/{codigo}'
 
-    supabase.table('reservas').insert({
-        'cliente_id': cliente_id,
-        'fecha': str_fecha_utc,
-        'cantidad_personas': data['cantidad_personas'],
-        'uuid_codigo': str(codigo),
-        'qr_url': qr_url,
-        'estado': ESTADO_RESERVA_PENDIENTE,
-    }).execute()
+    execute(
+        """
+        INSERT INTO reservas (
+            cliente_id, fecha, cantidad_personas,
+            uuid_codigo, qr_url, estado
+        )
+        VALUES (%s, %s, %s, %s, %s, %s)
+        """,
+        (
+            cliente_id,
+            str_fecha_utc,
+            data['cantidad_personas'],
+            str(codigo),
+            qr_url,
+            ESTADO_RESERVA_PENDIENTE,
+        ),
+    )
+
 
 def confirmar_reserva_por_codigo(uuid_codigo: str) -> dict:
     reserva, datos_cliente = _obtener_reserva_y_cliente_por_uuid(uuid_codigo)
@@ -199,11 +248,19 @@ def confirmar_reserva_por_codigo(uuid_codigo: str) -> dict:
     if reserva['estado'] == ESTADO_RESERVA_CONFIRMADO:
         return _serializar_reserva(reserva, datos_cliente)
 
-    actualizado = supabase.table('reservas').update({
-        'estado': ESTADO_RESERVA_CONFIRMADO,
-    }).eq('uuid_codigo', uuid_codigo).execute()
+    actualizado = execute(
+        """
+        UPDATE reservas
+        SET estado = %s
+        WHERE uuid_codigo = %s
+        RETURNING *
+        """,
+        (ESTADO_RESERVA_CONFIRMADO, uuid_codigo),
+        returning=True,
+    )
 
-    return _serializar_reserva(actualizado.data[0], datos_cliente)
+    return _serializar_reserva(dict(actualizado), datos_cliente)
+
 
 def cancelar_reserva_por_codigo(uuid_codigo: str) -> dict:
     reserva, datos_cliente = _obtener_reserva_y_cliente_por_uuid(uuid_codigo)
@@ -218,37 +275,61 @@ def cancelar_reserva_por_codigo(uuid_codigo: str) -> dict:
             description='La reserva ya fue confirmada y no puede cancelarse'
         ))
 
-    actualizado = supabase.table('reservas').update({
-        'estado': ESTADO_RESERVA_CANCELADO,
-    }).eq('uuid_codigo', uuid_codigo).execute()
+    actualizado = execute(
+        """
+        UPDATE reservas
+        SET estado = %s
+        WHERE uuid_codigo = %s
+        RETURNING *
+        """,
+        (ESTADO_RESERVA_CANCELADO, uuid_codigo),
+        returning=True,
+    )
 
-    return _serializar_reserva(actualizado.data[0], datos_cliente)
+    return _serializar_reserva(dict(actualizado), datos_cliente)
+
 
 def obtener_reservas(limit=None, offset=None, orden='desc', uuid_codigo=None) -> list:
-    query = supabase.table('reservas').select('*, clientes(nombre, email, telefono)')
+    sql = """
+        SELECT r.*,
+               c.nombre AS cliente_nombre,
+               c.email AS cliente_email,
+               c.telefono AS cliente_telefono
+        FROM reservas r
+        JOIN clientes c ON c.cliente_id = r.cliente_id
+    """
+    params = []
 
     if uuid_codigo:
-        query = query.eq('uuid_codigo', uuid_codigo)
+        sql += ' WHERE r.uuid_codigo = %s'
+        params.append(uuid_codigo)
 
-    query = query.order('reserva_id', desc=(orden == 'desc'))
+    sql += f" ORDER BY r.reserva_id {'DESC' if orden == 'desc' else 'ASC'}"
 
     if limit is not None:
-        query = query.limit(limit)
+        sql += ' LIMIT %s'
+        params.append(limit)
 
     if offset is not None:
-        query = query.offset(offset)
+        sql += ' OFFSET %s'
+        params.append(offset)
 
-    respuesta = query.execute()
+    rows = fetch_all(sql, tuple(params))
 
     resultado = []
-    for r in respuesta.data:
-        datos_cliente = r.pop('clientes', {}) or {}
-        resultado.append(_serializar_reserva(r, datos_cliente))
+    for row in rows:
+        fila = dict(row)
+        datos_cliente = {
+            'nombre': fila.pop('cliente_nombre', None),
+            'email': fila.pop('cliente_email', None),
+            'telefono': fila.pop('cliente_telefono', None),
+        }
+        resultado.append(_serializar_reserva(fila, datos_cliente))
 
     return resultado
 
-def obtener_disponibilidad(fecha_obj) -> list[dict]:
 
+def obtener_disponibilidad(fecha_obj) -> list[dict]:
     fecha_str = fecha_obj.strftime(FORMATO_FECHA)
     disponibilidad = []
 
@@ -258,19 +339,16 @@ def obtener_disponibilidad(fecha_obj) -> list[dict]:
         fecha_utc = a_utc(fecha_local)
         str_fecha_utc = fecha_utc.strftime(FORMATO_FECHA_STR_Z)
 
-        response = (
-            supabase
-            .table('reservas')
-            .select('cantidad_personas')
-            .eq('fecha', str_fecha_utc)
-            .neq('estado', ESTADO_RESERVA_CANCELADO)
-            .execute()
+        filas = fetch_all(
+            """
+            SELECT cantidad_personas
+            FROM reservas
+            WHERE fecha = %s AND estado <> %s
+            """,
+            (str_fecha_utc, ESTADO_RESERVA_CANCELADO),
         )
 
-        personas_reservadas = sum(
-            reserva['cantidad_personas']
-            for reserva in response.data
-        )
+        personas_reservadas = sum(fila['cantidad_personas'] for fila in filas)
 
         lugares_disponibles = (
             CAPACIDAD_MAXIMA_PERSONAS_POR_TURNO - personas_reservadas

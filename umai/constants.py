@@ -1,72 +1,72 @@
 """Constantes globales del back"""
-TZ_LOCAL_NAME = 'America/Argentina/Buenos_Aires'
-FORMATO_FECHA = '%Y-%m-%d'
-FORMATO_FECHA_STR_Z = '%Y-%m-%dT%H:%M:%S.%fZ'
-FORMATO_FECHA_STR_zoneinfo = '%Y-%m-%dT%H:%M:%S.%f%z'
+TZ_LOCAL_NAME               = 'America/Argentina/Buenos_Aires'
+FORMATO_FECHA               = '%Y-%m-%d'
+FORMATO_FECHA_STR_Z         = '%Y-%m-%dT%H:%M:%S.%fZ'
+FORMATO_FECHA_STR_zoneinfo  = '%Y-%m-%dT%H:%M:%S.%f%z'
 
 FORMATO_HORARIO = '%H:%M'
 
 
 # Horario de atención (el cierre cruza medianoche: 18:30 → 01:00)
-HORA_APERTURA = 18
-MINUTO_APERTURA = 30
-HORA_CIERRE = 1
-MINUTO_CIERRE = 0
+HORA_APERTURA       = 18
+MINUTO_APERTURA     = 30
+HORA_CIERRE         = 1
+MINUTO_CIERRE       = 0
 
-MIN_PERSONAS = 1
-MAX_PERSONAS = 5
+MIN_PERSONAS        = 1
+MAX_PERSONAS        = 5
 
-TELEFONO_MIN_DIGITOS = 8
-TELEFONO_MAX_DIGITOS = 15
-TELEFONO_MIN_LONGITUD = 8
-TELEFONO_MAX_LONGITUD = 30
+TELEFONO_MIN_DIGITOS    = 8
+TELEFONO_MAX_DIGITOS    = 15
+TELEFONO_MIN_LONGITUD   = 8
+TELEFONO_MAX_LONGITUD   = 30
 
 CAPACIDAD_MAXIMA_PERSONAS_POR_TURNO = 40
 
-ESTADO_RESERVA_PENDIENTE = 'pendiente'  
-ESTADO_RESERVA_CONFIRMADO = 'confirmado' 
-ESTADO_RESERVA_CANCELADO = 'cancelado' 
+ESTADO_RESERVA_PENDIENTE    = 'pendiente'  
+ESTADO_RESERVA_CONFIRMADO   = 'confirmado' 
+ESTADO_RESERVA_CANCELADO    = 'cancelado' 
 
 
-USUARIO_MIN = 3
-USUARIO_MAX = 50
-CONTRASENA_MIN = 6
-CONTRASENA_MAX = 100
+USUARIO_MIN     = 3
+USUARIO_MAX     = 50
+CONTRASENA_MIN  = 6
+CONTRASENA_MAX  = 100
 
 ERROR_CODE_ETIQUETAS_INVALIDAS = 'invalid.plato.etiquetas'
 
-ERROR_CODE_MISSING_FECHA = 'required.date'
-ERROR_CODE_INVALID_FORMAT_FECHA = 'invalid.date'
-ERROR_CODE_INVALID_FECHA = 'invalid.past.date'
-ERROR_CODE_INVALID_HORARIO = 'invalid.time.range'
+ERROR_CODE_MISSING_FECHA            = 'required.date'
+ERROR_CODE_INVALID_FORMAT_FECHA     = 'invalid.date'
+ERROR_CODE_INVALID_FECHA            = 'invalid.past.date'
+ERROR_CODE_INVALID_HORARIO          = 'invalid.time.range'
 
-ERROR_CODE_INVALID_BODY = 'invalid.body'
-ERROR_CODE_INTERNAL_SERVER     = 'server.error'
-ERROR_CODE_INVALID_MIN_VALUE = 'invalid.min.value'
-ERROR_CODE_INVALID_MAX_VALUE = 'invalid.max.value'
-ERROR_CODE_MISSING_FIELDS = 'invalid.missing.fields'
-ERROR_CODE_UNAUTHORIZED = 'auth.unauthorized'
-ERROR_CODE_TURNO_LLENO = 'turno.lleno'
-ERROR_CODE_RESERVA_ACTIVA = 'reserva.activa'
-ERROR_CODE_NOT_FOUND = 'not.found'
-ERROR_CODE_CONFLICT = 'conflict'
-
+ERROR_CODE_INVALID_BODY         = 'invalid.body'
+ERROR_CODE_INTERNAL_SERVER      = 'server.error'
+ERROR_CODE_INVALID_MIN_VALUE    = 'invalid.min.value'
+ERROR_CODE_INVALID_MAX_VALUE    = 'invalid.max.value'
+ERROR_CODE_MISSING_FIELDS       = 'invalid.missing.fields'
+ERROR_CODE_UNAUTHORIZED         = 'auth.unauthorized'
+ERROR_CODE_TURNO_LLENO          = 'turno.lleno'
+ERROR_CODE_RESERVA_ACTIVA       = 'reserva.activa'
+ERROR_CODE_NOT_FOUND            = 'not.found'
+ERROR_CODE_CONFLICT             = 'conflict'
+ERROR_CODE_SERVICIO_DUPLICADO   = 'conflict.nombre.duplicate'
 
 ERROR_CODE_PLATO_DUPLICADO = 'plato.duplicado'
 
-ERROR_CODE_UUID_CODIGO_INVALIDO = 'invalid.uuid_codigo.format'
-ERROR_CODE_RESERVA_CANCELADA = 'reserva.cancelada'
-ERROR_CODE_RESERVA_NO_ENCONTRADA = 'reserva.no_encontrada'
-ERROR_CODE_RESERVA_YA_CONFIRMADA = 'reserva.confirmada'
+ERROR_CODE_UUID_CODIGO_INVALIDO     = 'invalid.uuid_codigo.format'
+ERROR_CODE_RESERVA_CANCELADA        = 'reserva.cancelada'
+ERROR_CODE_RESERVA_NO_ENCONTRADA    = 'reserva.no_encontrada'
+ERROR_CODE_RESERVA_YA_CONFIRMADA    = 'reserva.confirmada'
 
 ERROR_CODE_RESERVA_TURNO_PASADO = 'reserva.turno.pasado'
 
-ERROR_CODES_CONFLICTO = (ERROR_CODE_CONFLICT, ERROR_CODE_TURNO_LLENO, ERROR_CODE_RESERVA_TURNO_PASADO, ERROR_CODE_RESERVA_ACTIVA, ERROR_CODE_RESERVA_CANCELADA, ERROR_CODE_PLATO_DUPLICADO, ERROR_CODE_RESERVA_YA_CONFIRMADA,)
+ERROR_CODES_CONFLICTO = (ERROR_CODE_SERVICIO_DUPLICADO, ERROR_CODE_CONFLICT, ERROR_CODE_TURNO_LLENO, ERROR_CODE_RESERVA_TURNO_PASADO, ERROR_CODE_RESERVA_ACTIVA, ERROR_CODE_RESERVA_CANCELADA, ERROR_CODE_PLATO_DUPLICADO, ERROR_CODE_RESERVA_YA_CONFIRMADA,)
 
 
-TIPOS_FOTO_VALIDOS = ('image/png', 'image/jpeg')
-MAX_FOTO_BYTES = 5 * 1024 * 1024
-HORARIOS_DISPONIBLES = [
+TIPOS_FOTO_VALIDOS      = ('image/png', 'image/jpeg')
+MAX_FOTO_BYTES          = 5 * 1024 * 1024
+HORARIOS_DISPONIBLES    = [
     '18:30','19:00','19:30','20:00', '20:30', '21:00', '21:30', '22:00', '22:30', '23:00', '23:30', '00:00', '00:30', '01:00'   
 ]
 FUNCIONES_VALIDAS = {'cancelar', 'confirmar'}

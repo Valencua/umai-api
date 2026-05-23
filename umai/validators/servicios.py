@@ -41,3 +41,21 @@ def validar_crear_servicio(body: dict) -> dict:
         'icono':       body['icono'].strip(),
         'estado':      body.get('estado', True)
     }
+
+def validar_actualizar_estado_servicio(body: dict) -> bool:
+    if body is None or 'estado' not in body or body['estado'] is None:
+        raise ValueError(construir_error_api(
+            code='required.estado',
+            message="Campo requerido: 'estado'",
+            description='Debe enviar { "estado": true } o { "estado": false }'
+        ))
+
+    estado = body['estado']
+    if not isinstance(estado, bool):
+        raise ValueError(construir_error_api(
+            code='invalid.estado.format',
+            message="Formato de 'estado' inválido",
+            description='El campo estado debe ser true o false (booleano JSON)'
+        ))
+
+    return estado

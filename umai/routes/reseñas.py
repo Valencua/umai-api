@@ -29,7 +29,6 @@ def get_reseñas():
             description='El parametro estado solo acepta true o false'
         )), 400
 
-
     try:
         reseñas = listar_reseñas(estado_bool)
         return jsonify({'data': reseñas, 'status': 'success'}), 200

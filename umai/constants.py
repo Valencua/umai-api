@@ -2,7 +2,7 @@
 TZ_LOCAL_NAME               = 'America/Argentina/Buenos_Aires'
 FORMATO_FECHA               = '%Y-%m-%d'
 FORMATO_FECHA_STR_Z         = '%Y-%m-%dT%H:%M:%S.%fZ'
-FORMATO_FECHA_STR_zoneinfo  = '%Y-%m-%dT%H:%M:%S.%f%z'
+FORMATO_FECHA_STR_zoneinfo  = '%Y-%m-%dT%H:%M:%S.%f%:z'
 
 FORMATO_HORARIO = '%H:%M'
 

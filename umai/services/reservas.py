@@ -255,6 +255,7 @@ def confirmar_reserva_por_codigo(uuid_codigo: str) -> dict:
         returning=True,
     )
     return _serializar_reserva(dict(actualizado), datos_cliente)
+    
 def cancelar_reserva_por_codigo(uuid_codigo: str) -> dict:
     reserva, datos_cliente = _obtener_reserva_y_cliente_por_uuid(uuid_codigo)
     if reserva['estado'] == ESTADO_RESERVA_CANCELADO:

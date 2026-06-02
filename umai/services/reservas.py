@@ -235,7 +235,7 @@ def confirmar_reserva_por_codigo(uuid_codigo: str) -> None:
         ))
 
     if reserva['estado'] == ESTADO_RESERVA_CONFIRMADO:
-        return _serializar_reserva(reserva, datos_cliente)
+        return
 
     execute(
         """
@@ -249,7 +249,7 @@ def confirmar_reserva_por_codigo(uuid_codigo: str) -> None:
 def cancelar_reserva_por_codigo(uuid_codigo: str) -> None:
     reserva = _obtener_reserva_por_uuid(uuid_codigo)
     if reserva['estado'] == ESTADO_RESERVA_CANCELADO:
-        return _serializar_reserva(reserva, datos_cliente)
+        return
 
     if reserva['estado'] == ESTADO_RESERVA_CONFIRMADO:
         raise ValueError(construir_error_api(
@@ -268,7 +268,7 @@ def cancelar_reserva_por_codigo(uuid_codigo: str) -> None:
     )
 
 
-def obtener_reservas(limit=None, offset=None, orden='desc', uuid_codigo=None) -> list:
+def obtener_reservas(limit=None, offset=None, orden='desc', uuid_codigo=None, email=None) -> list:
     sql = """
         SELECT r.*,
                c.nombre AS cliente_nombre,
@@ -278,10 +278,18 @@ def obtener_reservas(limit=None, offset=None, orden='desc', uuid_codigo=None) ->
         JOIN clientes c ON c.cliente_id = r.cliente_id
     """
     params = []
+    condiciones = []
 
     if uuid_codigo:
-        sql += ' WHERE r.uuid_codigo = %s'
+        condiciones.append('r.uuid_codigo = %s')
         params.append(uuid_codigo)
+
+    if email:
+        condiciones.append('c.email = %s')
+        params.append(email)
+
+    if condiciones:
+        sql += ' WHERE ' + ' AND '.join(condiciones)
 
     sql += f" ORDER BY r.reserva_id {'DESC' if orden == 'desc' else 'ASC'}"
 

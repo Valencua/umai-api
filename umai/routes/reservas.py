@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request
-from umai.utils import construir_error_api,validar_entero,validar_minimo
+from umai.utils import construir_error_api,validar_entero,validar_minimo, validar_email
 from umai.constants import ERROR_CODE_INVALID_BODY, ERROR_CODES_CONFLICTO, ERROR_CODE_INTERNAL_SERVER, ERROR_CODE_RESERVA_NO_ENCONTRADA
 from umai.services.reservas import crear_reserva, obtener_reservas, cancelar_reserva_por_codigo, confirmar_reserva_por_codigo, obtener_disponibilidad
 from umai.validators.reservas import validar_crear_reserva, validar_uuid_codigo,validar_patch_reserva, validar_fecha_disponibilidad
@@ -85,12 +85,19 @@ def get_disponibilidad():
     
 @reservas_bp.route('/', methods=['GET'])
 def get_reservas():
+    email = request.args.get('email')
     limit = request.args.get('limit')
     offset = request.args.get('offset')
     orden = request.args.get('orden', 'desc').strip().lower()
     uuid_codigo = request.args.get('uuid_codigo')
 
     errores = []
+
+    if email is not None:
+        try:
+            email = validar_email(email.strip().lower())
+        except ValueError as e:
+            errores.extend(e.args[0]['errors'])
 
     if limit is not None:
         try:
@@ -123,12 +130,18 @@ def get_reservas():
         return jsonify({'errors': errores}), 400
 
     try:
-        reservas = obtener_reservas(limit=limit, offset=offset, orden=orden, uuid_codigo=uuid_codigo)
+        reservas = obtener_reservas(limit=limit, offset=offset, orden=orden, uuid_codigo=uuid_codigo, email=email)
         if uuid_codigo and not reservas:
             return jsonify(construir_error_api(
                 code=ERROR_CODE_RESERVA_NO_ENCONTRADA,
                 message='Reserva no encontrada',
                 description=f'No existe una reserva con el código {uuid_codigo}'
+            )), 404
+        if email and not reservas:
+            return jsonify(construir_error_api(
+                code=ERROR_CODE_RESERVA_NO_ENCONTRADA,
+                message='Reserva no encontrada',
+                description=f'No existe una reserva con el email {email}'
             )), 404
 
         return jsonify({'data': reservas, 'status': 'success'}), 200

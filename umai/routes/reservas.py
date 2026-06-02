@@ -42,10 +42,10 @@ def patch_reserva(uuid_codigo):
     try:
         params = validar_patch_reserva(uuid_codigo, body)
         if params['funcion'] == 'confirmar':
-            reserva = confirmar_reserva_por_codigo(params['uuid_codigo'])
+            confirmar_reserva_por_codigo(params['uuid_codigo'])
         else:
-            reserva = cancelar_reserva_por_codigo(params['uuid_codigo'])
-        return jsonify({'data': reserva, 'status': 'success'}), 200
+            cancelar_reserva_por_codigo(params['uuid_codigo'])
+        return '', 204
     except ValueError as e:
         error = e.args[0]
         if not isinstance(error, dict) or 'errors' not in error:

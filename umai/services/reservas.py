@@ -23,20 +23,16 @@ from umai.utils import a_utc, construir_error_api, formatear_rfc3339, TZ_LOCAL
 logger = logging.getLogger(__name__)
 
 
-def _obtener_reserva_y_cliente_por_uuid(uuid_codigo: str):
+def _obtener_reserva_por_uuid(uuid_codigo: str):
     row = fetch_one(
         """
-        SELECT r.*,
-               c.nombre AS cliente_nombre,
-               c.email AS cliente_email,
-               c.telefono AS cliente_telefono
-        FROM reservas r
-        JOIN clientes c ON c.cliente_id = r.cliente_id
-        WHERE r.uuid_codigo = %s
+        SELECT *
+        FROM reservas
+        WHERE uuid_codigo = %s
         """,
         (uuid_codigo,),
     )
-
+    
     if not row:
         raise ValueError(construir_error_api(
             code=ERROR_CODE_RESERVA_NO_ENCONTRADA,
@@ -44,13 +40,7 @@ def _obtener_reserva_y_cliente_por_uuid(uuid_codigo: str):
             description=f'No existe una reserva con el cÃ³digo {uuid_codigo}'
         ))
 
-    reserva = dict(row)
-    datos_cliente = {
-        'nombre': reserva.pop('cliente_nombre', None),
-        'email': reserva.pop('cliente_email', None),
-        'telefono': reserva.pop('cliente_telefono', None),
-    }
-    return reserva, datos_cliente
+    return dict(row)
 
 
 def _obtener_o_crear_cliente(nombre: str, email: str, telefono: str) -> int:
@@ -228,55 +218,54 @@ def crear_reserva(data: dict) -> dict:
     )
 
 
-def confirmar_reserva_por_codigo(uuid_codigo: str) -> dict:
-    reserva, datos_cliente = _obtener_reserva_y_cliente_por_uuid(uuid_codigo)
+def confirmar_reserva_por_codigo(uuid_codigo: str) -> None:
+    reserva = _obtener_reserva_por_uuid(uuid_codigo)
     if reserva['estado'] == ESTADO_RESERVA_CANCELADO:
         raise ValueError(construir_error_api(
             code=ERROR_CODE_RESERVA_CANCELADA,
             message='No se puede confirmar asistencia',
             description='La reserva esta cancelada y no puede marcarse como asistida'
         ))
+
     if _parsear_fecha_utc(reserva['fecha']) < datetime.now(timezone.utc):
         raise ValueError(construir_error_api(
             code=ERROR_CODE_RESERVA_TURNO_PASADO,
             message='No se puede confirmar la reserva',
             description='El turno de la reserva ya finalizo',
         ))
+
     if reserva['estado'] == ESTADO_RESERVA_CONFIRMADO:
         return _serializar_reserva(reserva, datos_cliente)
-    actualizado = execute(
+
+    execute(
         """
         UPDATE reservas
         SET estado = %s
         WHERE uuid_codigo = %s
-        RETURNING *
         """,
         (ESTADO_RESERVA_CONFIRMADO, uuid_codigo),
-        returning=True,
     )
-    return _serializar_reserva(dict(actualizado), datos_cliente)
     
-def cancelar_reserva_por_codigo(uuid_codigo: str) -> dict:
-    reserva, datos_cliente = _obtener_reserva_y_cliente_por_uuid(uuid_codigo)
+def cancelar_reserva_por_codigo(uuid_codigo: str) -> None:
+    reserva = _obtener_reserva_por_uuid(uuid_codigo)
     if reserva['estado'] == ESTADO_RESERVA_CANCELADO:
         return _serializar_reserva(reserva, datos_cliente)
+
     if reserva['estado'] == ESTADO_RESERVA_CONFIRMADO:
         raise ValueError(construir_error_api(
             code=ERROR_CODE_RESERVA_YA_CONFIRMADA,
             message='No se puede cancelar la reserva',
             description='La reserva ya fue confirmada y no puede cancelarse'
         ))
-    actualizado = execute(
+
+    execute(
         """
         UPDATE reservas
         SET estado = %s
         WHERE uuid_codigo = %s
-        RETURNING *
         """,
         (ESTADO_RESERVA_CANCELADO, uuid_codigo),
-        returning=True,
     )
-    return _serializar_reserva(dict(actualizado), datos_cliente)
 
 
 def obtener_reservas(limit=None, offset=None, orden='desc', uuid_codigo=None) -> list:

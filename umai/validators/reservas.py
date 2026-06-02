@@ -204,3 +204,16 @@ def validar_patch_reserva(uuid_codigo: str, body: dict | None) -> dict:
         'uuid_codigo': validar_uuid_codigo(uuid_codigo),
         'funcion': funcion,
     }
+
+def validar_cantidad_personas_disponibilidad(cantidad_personas: str | None) -> int | None:
+    if cantidad_personas is None:
+        return None
+
+    try:
+        cantidad = validar_entero(cantidad_personas, 'cantidad_personas')
+        validar_minimo(cantidad, MIN_PERSONAS, 'cantidad_personas')
+        validar_maximo(cantidad, MAX_PERSONAS, 'cantidad_personas')
+    except ValueError as e:
+        raise ValueError(e.args[0])
+
+    return cantidad

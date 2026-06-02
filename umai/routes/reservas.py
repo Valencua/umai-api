@@ -2,7 +2,7 @@ from flask import Blueprint, jsonify, request
 from umai.utils import construir_error_api,validar_entero,validar_minimo, validar_email
 from umai.constants import ERROR_CODE_INVALID_BODY, ERROR_CODES_CONFLICTO, ERROR_CODE_INTERNAL_SERVER, ERROR_CODE_RESERVA_NO_ENCONTRADA
 from umai.services.reservas import crear_reserva, obtener_reservas, cancelar_reserva_por_codigo, confirmar_reserva_por_codigo, obtener_disponibilidad
-from umai.validators.reservas import validar_crear_reserva, validar_uuid_codigo,validar_patch_reserva, validar_fecha_disponibilidad
+from umai.validators.reservas import validar_crear_reserva, validar_uuid_codigo,validar_patch_reserva, validar_fecha_disponibilidad, validar_cantidad_personas_disponibilidad
 
 reservas_bp = Blueprint('reservas', __name__)
 
@@ -70,9 +70,11 @@ def patch_reserva(uuid_codigo):
 @reservas_bp.route('/disponibilidad', methods=['GET'])
 def get_disponibilidad():
     fecha = request.args.get('fecha')
+    cantidad_personas = request.args.get('cantidad_personas')
     try:
         fecha_obj = validar_fecha_disponibilidad(fecha)
-        data = obtener_disponibilidad(fecha_obj)
+        cantidad_personas = validar_cantidad_personas_disponibilidad(cantidad_personas)
+        data = obtener_disponibilidad(fecha_obj, cantidad_personas)
         return jsonify({'data': data, 'status': 'success'}), 200
     except ValueError as e:
         return jsonify(e.args[0]), 400

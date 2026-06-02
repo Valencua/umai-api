@@ -316,7 +316,7 @@ def obtener_reservas(limit=None, offset=None, orden='desc', uuid_codigo=None, em
     return resultado
 
 
-def obtener_disponibilidad(fecha_obj) -> list[dict]:
+def obtener_disponibilidad(fecha_obj, cantidad_personas=None) -> list[dict]:
     fecha_str = fecha_obj.strftime(FORMATO_FECHA)
     disponibilidad = []
 
@@ -340,11 +340,15 @@ def obtener_disponibilidad(fecha_obj) -> list[dict]:
         lugares_disponibles = (
             CAPACIDAD_MAXIMA_PERSONAS_POR_TURNO - personas_reservadas
         )
-
+        if cantidad_personas is not None:
+            disponible = lugares_disponibles >= cantidad_personas
+        else:
+            disponible = lugares_disponibles >=0
+            
         disponibilidad.append({
             'horario': horario,
             'lugares_disponibles': lugares_disponibles,
-            'disponible': lugares_disponibles > 0,
+            'disponible': disponible,
         })
 
     return disponibilidad

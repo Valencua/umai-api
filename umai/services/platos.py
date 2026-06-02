@@ -191,7 +191,7 @@ def eliminar_plato(plato_id: int) -> None:
     )
 
 
-def actualizar_plato(plato_id: int, data: dict) -> dict:
+def actualizar_plato(plato_id: int, data: dict) -> None:
     plato_actual = fetch_one(
         """
         SELECT *
@@ -274,19 +274,6 @@ def actualizar_plato(plato_id: int, data: dict) -> dict:
             UPDATE platos
             SET {sets}
             WHERE plato_id = %s
-            RETURNING *
             """,
             tuple(params),
-            returning=True,
         )
-        return dict(fila)
-
-    fila = fetch_one(
-        """
-        SELECT *
-        FROM platos
-        WHERE plato_id = %s
-        """,
-        (plato_id,),
-    )
-    return dict(fila)

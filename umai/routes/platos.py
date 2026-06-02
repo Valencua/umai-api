@@ -95,7 +95,7 @@ def patch_plato(plato_id):
     try:
         data  = validar_actualizar_plato(body)
         plato = actualizar_plato(id_validado, data)
-        return jsonify(plato), 200
+        return '', 204
 
     except ValueError as e:
         error = e.args[0]

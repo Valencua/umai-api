@@ -85,7 +85,7 @@ def patch_estado_reseña(resena_id):
     try:
         id_validado = validar_entero(resena_id, 'resena_id')
         estado_validado = validar_actualizar_estado_reseña(body)
-        reseña_actualizada = actualizar_estado_reseña(id_validado, estado_validado)
+        actualizar_estado_reseña(id_validado, estado_validado)
     except ValueError as e:
         status = e.args[1] if len(e.args) > 1 else 400
         return jsonify(e.args[0]), status
@@ -96,4 +96,4 @@ def patch_estado_reseña(resena_id):
             description='Ocurrió un error inesperado'
         )), 500
 
-    return jsonify(reseña_actualizada), 200
+    return '', 204

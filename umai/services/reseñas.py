@@ -136,7 +136,7 @@ def crear_reseña(data: dict) -> dict:
     return _serializar_reseña(fila)
 
 
-def actualizar_estado_reseña(reseña_id: int, nuevo_estado: bool) -> dict:
+def actualizar_estado_reseña(reseña_id: int, nuevo_estado: bool) -> None:
     existente = fetch_one(
         """
         SELECT reseña_id
@@ -158,10 +158,6 @@ def actualizar_estado_reseña(reseña_id: int, nuevo_estado: bool) -> dict:
         UPDATE reseñas
         SET estado = %s
         WHERE reseña_id = %s
-        RETURNING *
         """,
         (nuevo_estado, reseña_id),
-        returning=True,
     )
-
-    return _serializar_reseña(fila)

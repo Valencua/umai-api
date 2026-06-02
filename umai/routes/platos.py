@@ -94,7 +94,7 @@ def patch_plato(plato_id):
 
     try:
         data  = validar_actualizar_plato(body)
-        plato = actualizar_plato(id_validado, data)
+        actualizar_plato(id_validado, data)
         return '', 204
 
     except ValueError as e:

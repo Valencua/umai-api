@@ -53,7 +53,7 @@ def crear_servicio(data: dict) -> dict:
     return dict(fila)
 
 
-def actualizar_estado_servicio(servicio_id: int, nuevo_estado: bool) -> dict:
+def actualizar_estado_servicio(servicio_id: int, nuevo_estado: bool) -> None:
     existente = fetch_one(
         """
         SELECT servicio_id
@@ -70,15 +70,11 @@ def actualizar_estado_servicio(servicio_id: int, nuevo_estado: bool) -> dict:
             description=f'No se encontró ningún servicio con el ID {servicio_id}'
         ), 404)
 
-    fila = execute(
+    execute(
         """
         UPDATE servicios
         SET estado = %s
         WHERE servicio_id = %s
-        RETURNING *
         """,
         (nuevo_estado, servicio_id),
-        returning=True,
     )
-
-    return dict(fila)

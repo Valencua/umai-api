@@ -72,7 +72,7 @@ def patch_estado_servicio(id):
     try:
         id_validado = validar_entero(id, 'id')
         estado_validado = validar_actualizar_estado_servicio(body)
-        servicio_actualizado = actualizar_estado_servicio(id_validado, estado_validado)
+        actualizar_estado_servicio(id_validado, estado_validado)
     except ValueError as e:
         status = e.args[1] if len(e.args) > 1 else 400
         return jsonify(e.args[0]), status
@@ -83,5 +83,5 @@ def patch_estado_servicio(id):
             description='Hubo un error interno'
         )), 500
     
-    return jsonify(servicio_actualizado), 200
+    return '', 204
 

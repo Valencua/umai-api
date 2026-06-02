@@ -111,14 +111,45 @@ def crear_plato(data: dict) -> dict:
     return plato
 
 
+def _agrupar_etiquetas_por_plato(plato_ids: list) -> dict:
+    if not plato_ids:
+        return {}
+
+    placeholders = ','.join(['%s'] * len(plato_ids))
+    rows = fetch_all(
+        f"""
+        SELECT plato_id, etiqueta_id
+        FROM plato_etiquetas
+        WHERE plato_id IN ({placeholders})
+        ORDER BY plato_id, etiqueta_id
+        """,
+        tuple(plato_ids),
+    )
+
+    agrupado = {plato_id: [] for plato_id in plato_ids}
+    for row in rows:
+        agrupado[row['plato_id']].append(row['etiqueta_id'])
+
+    return agrupado
+
+
 def traer_todos_los_platos():
     rows = fetch_all(
         """
         SELECT *
         FROM platos
+        ORDER BY plato_id
         """
     )
-    return [dict(row) for row in rows]
+    platos = [dict(row) for row in rows]
+    etiquetas_por_plato = _agrupar_etiquetas_por_plato(
+        [plato['plato_id'] for plato in platos]
+    )
+
+    for plato in platos:
+        plato['etiquetas'] = etiquetas_por_plato.get(plato['plato_id'], [])
+
+    return platos
 
 
 def eliminar_plato(plato_id: int) -> None:

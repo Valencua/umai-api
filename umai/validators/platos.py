@@ -51,6 +51,8 @@ def validar_crear_plato(body: dict) -> dict:
                 'mensaje': 'La imagen no puede superar 5MB'
             })
 
+    precio = None
+    
     try:
 
         precio = int(body['precio'])

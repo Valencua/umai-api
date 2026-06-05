@@ -136,7 +136,13 @@ def validar_actualizar_plato(body: dict) -> dict:
         data['foto'] = body['foto']
 
     if 'etiquetas' in body:
-        data['etiquetas'] = body['etiquetas']
+        if body['etiquetas']:
+            data['etiquetas'] = [
+                int(id_etiqueta)
+                for id_etiqueta in body['etiquetas'].split(',')
+            ]
+        else:
+            data['etiquetas'] = []
 
     if not data:
         errores.append(construir_error_api(

@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request
 from umai.utils import construir_error_api, validar_entero
-from umai.services.servicios import obtener_servicios, crear_servicio, actualizar_estado_servicio
+from umai.services.servicios import obtener_servicios, crear_servicio, actualizar_estado_servicio, eliminar_servicio
 from umai.validators.servicios import validar_crear_servicio, validar_actualizar_estado_servicio
 
 from umai.constants import (
@@ -85,3 +85,20 @@ def patch_estado_servicio(id):
     
     return '', 204
 
+
+@servicios_bp.route('/<id>', methods=['DELETE'])
+def delete_servicio(id):
+    try:
+        id_validado = validar_entero(id, 'id')
+        eliminar_servicio(id_validado)
+    except ValueError as e:
+        status = e.args[1] if len(e.args) > 1 else 400
+        return jsonify(e.args[0]), status
+    except Exception as e:
+        return jsonify(construir_error_api(
+            code=ERROR_CODE_INTERNAL_SERVER,
+            message='Error al eliminar el servicio',
+            description='Ocurrio un error inesperado'
+        )), 500
+
+    return '', 204

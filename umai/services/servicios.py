@@ -78,3 +78,29 @@ def actualizar_estado_servicio(servicio_id: int, nuevo_estado: bool) -> None:
         """,
         (nuevo_estado, servicio_id),
     )
+
+
+def eliminar_servicio(servicio_id: int) -> None:
+    existente = fetch_one(
+        """
+        SELECT servicio_id
+        FROM servicios
+        WHERE servicio_id = %s
+        """,
+        (servicio_id,),
+    )
+
+    if not existente:
+        raise ValueError(construir_error_api(
+            code='not_found.servicio',
+            message='Servicio no encontrado',
+            description=f'No se encontró ningún servicio con el ID {servicio_id}'
+        ), 404)
+
+    execute(
+        """
+        DELETE FROM servicios
+        WHERE servicio_id = %s
+        """,
+        (servicio_id,),
+    )

@@ -53,43 +53,22 @@ git switch ru_rama_nueva
 
 ---
 
-## 2️⃣ Crear entorno virtual
-
-### Linux / Mac
+## 2️⃣ Ejecutar setup inicial de PYTHON
 
 ```bash
-python -m venv venv
+bash setup_python.sh
+```
+---
+
+## 3️⃣ Activar el entorno virtual
+
+```bash
 source venv/bin/activate
 ```
 
-### Windows
-
-```bash
-venv\Scripts\activate
-```
-
 ---
 
-## 3️⃣ Instalar dependencias
-
-```bash
-pip install -r requirements.txt
-```
-
----
-
-## 4️⃣ Variables de entorno
-
-Crear un archivo `.env`:
-
-```env
-SUPABASE_URL="tu_url_de_supabase"
-SUPABASE_KEY="tu_anon_key_de_supabase"
-```
-
----
-
-## 5️⃣ Ejecutar servidor
+## 4️⃣ Levantar el servidor
 
 ```bash
 python3 -m app

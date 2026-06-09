@@ -1,0 +1,1195 @@
+openapi: 3.0.3
+info:
+  title: umai-api
+  description: >-
+    API REST para la gestión integral de un restaurante: autenticación,
+    reservas, platos, reseñas, servicios y métricas.
+    Documentación generada en base a la implementación real (rutas, validadores
+    y servicios).
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:5000
+    description: Servidor local de desarrollo
+
+tags:
+  - name: Auth
+    description: Autenticación de usuarios
+  - name: Reservas
+    description: Gestión de reservas
+  - name: Platos
+    description: Gestión del menú / platos
+  - name: Reseñas
+    description: Gestión de reseñas
+  - name: Servicios
+    description: Gestión de servicios
+  - name: Métricas
+    description: Métricas y dashboard
+
+paths:
+  # ===========================================================
+  # AUTH
+  # ===========================================================
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Iniciar sesión
+      description: >-
+        Valida las credenciales de un usuario. El campo `usuario` debe tener
+        entre 3 y 50 caracteres y `contraseña` entre 6 y 100.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [usuario, contraseña]
+              properties:
+                usuario:
+                  type: string
+                  minLength: 3
+                  maxLength: 50
+                  example: admin
+                contraseña:
+                  type: string
+                  minLength: 6
+                  maxLength: 100
+                  example: admin123
+      responses:
+        '200':
+          description: Credenciales válidas
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  admin:
+                    type: boolean
+                    example: true
+        '400':
+          description: >-
+            Cuerpo inválido (no es JSON), faltan campos requeridos o no cumplen
+            las longitudes.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '401':
+          description: Credenciales inválidas (usuario o contraseña incorrectos)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+  # ===========================================================
+  # RESERVAS
+  # ===========================================================
+  /reservas/:
+    post:
+      tags: [Reservas]
+      summary: Crear una reserva
+      description: >-
+        Crea una reserva. Si el cliente (por email) no existe, se crea
+        automáticamente. Reglas de negocio:
+        capacidad máxima de 40 personas por turno y un cliente no puede tener
+        más de una reserva activa a la vez.
+        El horario debe estar dentro del rango de atención (18:30 a 01:00) y la
+        fecha/hora debe ser futura.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [nombre, email, telefono, fecha, cantidad_personas]
+              properties:
+                nombre:
+                  type: string
+                  minLength: 3
+                  maxLength: 100
+                  description: Solo letras y espacios.
+                  example: Ana García
+                email:
+                  type: string
+                  format: email
+                  minLength: 5
+                  maxLength: 100
+                  example: ana.garcia@example.com
+                telefono:
+                  type: string
+                  minLength: 8
+                  maxLength: 30
+                  description: >-
+                    Dígitos, espacios, guiones, paréntesis y un "+" opcional al
+                    inicio. Entre 8 y 15 dígitos.
+                  example: "+54 9 11 1234 5678"
+                fecha:
+                  type: string
+                  description: >-
+                    Fecha y hora en formato `%Y-%m-%dT%H:%M:%S.%f%z`
+                    (con microsegundos y offset de zona horaria).
+                  example: "2026-06-15T21:00:00.000000-03:00"
+                cantidad_personas:
+                  type: integer
+                  minimum: 1
+                  maximum: 5
+                  example: 4
+      responses:
+        '201':
+          description: Reserva creada (sin cuerpo de respuesta)
+        '400':
+          description: Cuerpo inválido o errores de validación de los campos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '409':
+          description: >-
+            Conflicto de negocio: turno sin disponibilidad (`turno.lleno`) o el
+            cliente ya tiene una reserva activa (`reserva.activa`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+    get:
+      tags: [Reservas]
+      summary: Listar reservas
+      description: >-
+        Lista reservas con filtros opcionales y paginación. Si se filtra por
+        `uuid_codigo` o `email` y no hay resultados, devuelve 404.
+      parameters:
+        - name: email
+          in: query
+          required: false
+          schema:
+            type: string
+            format: email
+          description: Filtra por el email del cliente.
+        - name: uuid_codigo
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+          description: Filtra por el código UUID de la reserva.
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+          description: Cantidad máxima de resultados.
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+          description: Desplazamiento para la paginación.
+        - name: orden
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+          description: Orden por `reserva_id`.
+      responses:
+        '200':
+          description: Listado de reservas
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Reserva'
+        '400':
+          description: Parámetros de query inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: >-
+            No se encontró una reserva para el `uuid_codigo` o `email`
+            indicados.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+  /reservas/disponibilidad:
+    get:
+      tags: [Reservas]
+      summary: Consultar disponibilidad por fecha
+      description: >-
+        Devuelve la disponibilidad de cada horario de atención para una fecha.
+        Si se envía `cantidad_personas`, el campo `disponible` indica si hay
+        lugar para esa cantidad.
+      parameters:
+        - name: fecha
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+          description: Fecha a consultar en formato YYYY-MM-DD. No puede ser pasada.
+          example: "2026-06-15"
+        - name: cantidad_personas
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 5
+          example: 4
+      responses:
+        '200':
+          description: Disponibilidad por horario
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DisponibilidadHorario'
+        '400':
+          description: Fecha faltante, con formato inválido o en el pasado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+  /reservas/{uuid_codigo}:
+    patch:
+      tags: [Reservas]
+      summary: Confirmar o cancelar una reserva
+      description: >-
+        Aplica una acción sobre la reserva identificada por su UUID.
+        Reglas: una reserva cancelada no puede confirmarse, una reserva de un
+        turno pasado no puede confirmarse, y una reserva ya confirmada no puede
+        cancelarse.
+      parameters:
+        - name: uuid_codigo
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Código UUID de la reserva.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [funcion]
+              properties:
+                funcion:
+                  type: string
+                  enum: [confirmar, cancelar]
+                  example: confirmar
+      responses:
+        '204':
+          description: Acción aplicada correctamente (sin cuerpo)
+        '400':
+          description: >-
+            Cuerpo inválido, falta `funcion`, `funcion` inválida o `uuid_codigo`
+            con formato inválido.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: La reserva no existe (`reserva.no_encontrada`)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '409':
+          description: >-
+            Conflicto de estado: reserva cancelada (`reserva.cancelada`),
+            turno ya finalizado (`reserva.turno.pasado`) o reserva ya confirmada
+            (`reserva.confirmada`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+  # ===========================================================
+  # PLATOS
+  # ===========================================================
+  /platos/:
+    post:
+      tags: [Platos]
+      summary: Crear un plato
+      description: >-
+        Crea un plato. Se envía como `multipart/form-data` porque incluye la
+        imagen. La foto es obligatoria (PNG o JPEG, máximo 5MB) y se sube a
+        Supabase Storage. `etiquetas` es opcional, una lista de IDs separados
+        por coma.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [nombre, descripcion, precio, foto]
+              properties:
+                nombre:
+                  type: string
+                  example: Ramen Tonkotsu
+                descripcion:
+                  type: string
+                  example: Caldo de cerdo con fideos y huevo
+                precio:
+                  type: integer
+                  example: 8500
+                foto:
+                  type: string
+                  format: binary
+                  description: Imagen PNG o JPEG, máximo 5MB.
+                etiquetas:
+                  type: string
+                  description: IDs de etiquetas separados por coma.
+                  example: "3,4"
+      responses:
+        '201':
+          description: Plato creado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Plato'
+        '400':
+          description: >-
+            Errores de validación. Las validaciones del request (campos
+            faltantes, foto inválida, precio mal formado, etiquetas no
+            numéricas) devuelven el formato `PlatoValidationError`
+            (`{campo, mensaje}`). Si las etiquetas referencian IDs
+            inexistentes en la base, devuelve el formato estándar `ApiError`
+            con code `invalid.plato.etiquetas`.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/PlatoValidationError'
+                  - $ref: '#/components/schemas/ApiError'
+        '409':
+          description: Ya existe un plato con ese nombre (`plato.duplicado`)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+    get:
+      tags: [Platos]
+      summary: Listar platos
+      description: Devuelve todos los platos, cada uno con su lista de IDs de etiquetas.
+      responses:
+        '200':
+          description: Listado de platos
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PlatoConEtiquetas'
+        '500':
+          description: Error listando platos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+  /platos/{plato_id}:
+    delete:
+      tags: [Platos]
+      summary: Eliminar un plato
+      description: >-
+        Elimina el plato, sus asociaciones de etiquetas y la imagen asociada en
+        Supabase Storage.
+      parameters:
+        - name: plato_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID del plato.
+      responses:
+        '204':
+          description: Plato eliminado (sin cuerpo)
+        '400':
+          description: El `plato_id` no es un número válido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: El plato no existe (`not_found.plato`)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+    patch:
+      tags: [Platos]
+      summary: Actualizar un plato (parcial)
+      description: >-
+        Actualiza parcialmente un plato. Se envía como `multipart/form-data`.
+        Todos los campos son opcionales, pero debe enviarse al menos uno.
+        Reglas: `nombre` 3-100 caracteres, `descripcion` 10-500, `precio` mayor
+        a 0. Si se envían `etiquetas`, se reemplaza el set completo.
+      parameters:
+        - name: plato_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID del plato.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                nombre:
+                  type: string
+                  example: Ramen Especial
+                descripcion:
+                  type: string
+                  example: Caldo de cerdo con doble porción de fideos
+                precio:
+                  type: integer
+                  example: 9500
+                foto:
+                  type: string
+                  format: binary
+                etiquetas:
+                  type: string
+                  description: IDs de etiquetas separados por coma (vacío para quitar todas).
+                  example: "3,4"
+      responses:
+        '204':
+          description: Plato actualizado (sin cuerpo)
+        '400':
+          description: >-
+            `plato_id` inválido, errores de validación o ningún campo enviado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: El plato no existe (`not_found.plato`)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '409':
+          description: Ya existe otro plato con ese nombre (`plato.duplicado`)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+  # ===========================================================
+  # RESEÑAS
+  # ===========================================================
+  /reseñas/:
+    get:
+      tags: [Reseñas]
+      summary: Listar reseñas por estado
+      description: >-
+        Lista las reseñas filtradas por su estado (aprobada/visible o no).
+        El parámetro `estado` es obligatorio.
+      parameters:
+        - name: estado
+          in: query
+          required: true
+          schema:
+            type: boolean
+          description: "true o false. Filtra las reseñas por su estado."
+          example: true
+      responses:
+        '200':
+          description: Listado de reseñas
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ReseñaListItem'
+        '400':
+          description: Falta el parámetro `estado` o tiene un valor inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+    post:
+      tags: [Reseñas]
+      summary: Crear una reseña
+      description: >-
+        Crea una reseña para un cliente (identificado por email). Reglas: el
+        cliente debe existir, debe tener al menos una reserva confirmada y no
+        haber dejado una reseña previa. La reseña se crea con `estado=false`
+        (pendiente de aprobación).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, rating, descripcion]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: ana.garcia@example.com
+                rating:
+                  type: integer
+                  minimum: 0
+                  maximum: 5
+                  example: 5
+                descripcion:
+                  type: string
+                  minLength: 10
+                  maxLength: 500
+                  example: Excelente atención y comida riquísima
+      responses:
+        '201':
+          description: Reseña creada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Reseña'
+        '400':
+          description: Cuerpo inválido o errores de validación
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '403':
+          description: >-
+            El cliente no tiene una reserva confirmada
+            (`forbidden.resena.sin_reserva`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: No existe un cliente con ese email (`not_found.cliente`)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '409':
+          description: El cliente ya dejó una reseña (`conflict.resena.duplicada`)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+  /reseñas/{resena_id}:
+    delete:
+      tags: [Reseñas]
+      summary: Eliminar una reseña
+      parameters:
+        - name: resena_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID de la reseña.
+      responses:
+        '204':
+          description: Reseña eliminada (sin cuerpo)
+        '400':
+          description: El `resena_id` no es un número válido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: La reseña no existe (`not_found.resena`)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+    patch:
+      tags: [Reseñas]
+      summary: Actualizar el estado de una reseña
+      description: Cambia el estado (aprobada/visible) de una reseña.
+      parameters:
+        - name: resena_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID de la reseña.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [estado]
+              properties:
+                estado:
+                  type: boolean
+                  example: true
+      responses:
+        '204':
+          description: Estado actualizado (sin cuerpo)
+        '400':
+          description: >-
+            `resena_id` inválido, falta `estado` o no es booleano
+            (`invalid.estado.format`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: La reseña no existe (`not_found.reseña`)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+  # ===========================================================
+  # SERVICIOS
+  # ===========================================================
+  /servicios/:
+    get:
+      tags: [Servicios]
+      summary: Listar servicios
+      description: >-
+        Devuelve todos los servicios. Si no hay servicios registrados, responde
+        404.
+      responses:
+        '200':
+          description: Listado de servicios
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Servicio'
+        '404':
+          description: No hay servicios registrados
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+    post:
+      tags: [Servicios]
+      summary: Crear un servicio
+      description: >-
+        Crea un servicio. Reglas: `nombre` 3-100 caracteres (solo letras y
+        espacios), `descripcion` 10-500, `icono` 1-10 caracteres. `estado` es
+        opcional (por defecto true).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [nombre, descripcion, icono]
+              properties:
+                nombre:
+                  type: string
+                  minLength: 3
+                  maxLength: 100
+                  example: Delivery
+                descripcion:
+                  type: string
+                  minLength: 10
+                  maxLength: 500
+                  example: Envío a domicilio en toda la zona
+                icono:
+                  type: string
+                  minLength: 1
+                  maxLength: 10
+                  example: truck
+                estado:
+                  type: boolean
+                  default: true
+                  example: true
+      responses:
+        '201':
+          description: Servicio creado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Servicio'
+        '400':
+          description: Cuerpo inválido o errores de validación
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '409':
+          description: Ya existe un servicio con ese nombre (`conflict.nombre.duplicate`)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+  /servicios/{id}:
+    patch:
+      tags: [Servicios]
+      summary: Actualizar el estado de un servicio
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID del servicio.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [estado]
+              properties:
+                estado:
+                  type: boolean
+                  example: false
+      responses:
+        '204':
+          description: Estado actualizado (sin cuerpo)
+        '400':
+          description: >-
+            Cuerpo inválido, `id` inválido, falta `estado` o no es booleano.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: El servicio no existe (`not_found.servicio`)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+    delete:
+      tags: [Servicios]
+      summary: Eliminar un servicio
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID del servicio.
+      responses:
+        '204':
+          description: Servicio eliminado (sin cuerpo)
+        '400':
+          description: El `id` no es un número válido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: El servicio no existe (`not_found.servicio`)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+  # ===========================================================
+  # MÉTRICAS
+  # ===========================================================
+  /metricas/dashboard:
+    get:
+      tags: [Métricas]
+      summary: Obtener el dashboard de métricas
+      description: >-
+        Devuelve un resumen con rating promedio, reservas de hoy, cancelaciones
+        de hoy, métricas agregadas de reservas, personas confirmadas hoy y
+        reservas de los últimos 7 días.
+      responses:
+        '200':
+          description: Dashboard de métricas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dashboard'
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+# =============================================================
+# COMPONENTES / SCHEMAS
+# =============================================================
+components:
+  schemas:
+    ErrorItem:
+      type: object
+      properties:
+        code:
+          type: string
+          example: invalid.body
+        message:
+          type: string
+          example: Cuerpo de la solicitud inválido
+        level:
+          type: string
+          example: error
+        description:
+          type: string
+          example: El cuerpo debe ser un JSON válido con Content-Type application/json
+
+    ApiError:
+      type: object
+      description: Formato de error estándar de la API.
+      properties:
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/ErrorItem'
+
+    PlatoValidationError:
+      type: object
+      description: >-
+        Formato de error específico de la validación de creación de platos.
+      properties:
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              campo:
+                type: string
+                example: foto
+              mensaje:
+                type: string
+                example: La foto es obligatoria
+
+    ClienteResumen:
+      type: object
+      properties:
+        nombre:
+          type: string
+          example: Ana García
+        email:
+          type: string
+          example: ana.garcia@example.com
+        telefono:
+          type: string
+          example: "+54 9 11 1234 5678"
+
+    Reserva:
+      type: object
+      properties:
+        reserva_id:
+          type: integer
+          example: 1
+        uuid_codigo:
+          type: string
+          format: uuid
+          example: a3f2b1c4-5678-90ab-cdef-1234567890ab
+        estado:
+          type: string
+          enum: [pendiente, confirmado, cancelado]
+          example: pendiente
+        fecha:
+          type: string
+          description: Fecha y hora en formato RFC 3339 (zona local GMT-3).
+          example: "2026-06-15T21:00:00.000000-03:00"
+        cantidad_personas:
+          type: integer
+          example: 4
+        qr_url:
+          type: string
+          example: https://umai.example/qr/a3f2b1c4-5678-90ab-cdef-1234567890ab
+        cliente:
+          $ref: '#/components/schemas/ClienteResumen'
+
+    DisponibilidadHorario:
+      type: object
+      properties:
+        horario:
+          type: string
+          example: "21:00"
+        lugares_disponibles:
+          type: integer
+          example: 36
+        disponible:
+          type: boolean
+          example: true
+
+    Plato:
+      type: object
+      properties:
+        plato_id:
+          type: integer
+          example: 1
+        nombre:
+          type: string
+          example: Ramen Tonkotsu
+        descripcion:
+          type: string
+          example: Caldo de cerdo con fideos y huevo
+        precio:
+          type: integer
+          example: 8500
+        foto:
+          type: string
+          example: https://<proyecto>.supabase.co/storage/v1/object/public/platos/uuid.jpg
+
+    PlatoConEtiquetas:
+      allOf:
+        - $ref: '#/components/schemas/Plato'
+        - type: object
+          properties:
+            etiquetas:
+              type: array
+              items:
+                type: integer
+              example: [3, 4]
+
+    ReseñaListItem:
+      type: object
+      properties:
+        reseña_id:
+          type: integer
+          example: 1
+        descripcion:
+          type: string
+          example: Excelente atención y comida riquísima
+        rating:
+          type: integer
+          example: 5
+        creado_en:
+          type: string
+          example: "2026-06-09T20:30:00.000000-03:00"
+        clientes:
+          type: object
+          properties:
+            nombre:
+              type: string
+              example: Ana García
+
+    Reseña:
+      type: object
+      properties:
+        reseña_id:
+          type: integer
+          example: 1
+        cliente_id:
+          type: integer
+          example: 1
+        rating:
+          type: integer
+          example: 5
+        descripcion:
+          type: string
+          example: Excelente atención y comida riquísima
+        estado:
+          type: boolean
+          example: false
+        creado_en:
+          type: string
+          example: "2026-06-09T20:30:00.000000-03:00"
+
+    Servicio:
+      type: object
+      properties:
+        servicio_id:
+          type: integer
+          example: 1
+        nombre:
+          type: string
+          example: Delivery
+        descripcion:
+          type: string
+          example: Envío a domicilio en toda la zona
+        icono:
+          type: string
+          example: truck
+        estado:
+          type: boolean
+          example: true
+
+    Dashboard:
+      type: object
+      properties:
+        rating:
+          type: object
+          properties:
+            promedio:
+              type: number
+              example: 4.5
+        reservas_hoy:
+          type: object
+          properties:
+            reservas_hoy:
+              type: integer
+              example: 12
+        cancelaciones:
+          type: object
+          properties:
+            cancelaciones:
+              type: integer
+              example: 2
+        metricas_reservas:
+          type: object
+          properties:
+            total:
+              type: integer
+              example: 50
+            visitaron:
+              $ref: '#/components/schemas/MetricaCantidadPorcentaje'
+            canceladas:
+              $ref: '#/components/schemas/MetricaCantidadPorcentaje'
+            pendientes:
+              $ref: '#/components/schemas/MetricaCantidadPorcentaje'
+        personas_hoy:
+          type: object
+          properties:
+            personas_hoy:
+              type: integer
+              example: 28
+        reservas_semana:
+          type: array
+          items:
+            type: object
+            properties:
+              dia:
+                type: string
+                example: Lunes
+              reservas:
+                type: integer
+                example: 8
+
+    MetricaCantidadPorcentaje:
+      type: object
+      properties:
+        cantidad:
+          type: integer
+          example: 30
+        porcentaje:
+          type: integer
+          example: 60

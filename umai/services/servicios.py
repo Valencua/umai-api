@@ -1,6 +1,6 @@
 from db.connection import execute, fetch_all, fetch_one
 from umai.utils import construir_error_api
-from umai.constants import ERROR_CODE_SERVICIO_DUPLICADO
+from umai.constants import ERROR_CODE_NOT_FOUND
 
 def obtener_servicios() -> list:
     rows = fetch_all(
@@ -11,7 +11,7 @@ def obtener_servicios() -> list:
     )
     if not rows:
         raise ValueError(construir_error_api(
-            code=ERROR_CODE_SERVICIO_DUPLICADO,
+            code=ERROR_CODE_NOT_FOUND,
             message='No se encontraron servicios',
             description='No existen servicios registrados en la base de datos actualmente.'
         ))

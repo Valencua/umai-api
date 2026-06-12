@@ -26,7 +26,8 @@ def post_reserva():
         return '', 201
     except ValueError as e:
         error = e.args[0]
-        if error['errors'][0]['code'] in ERROR_CODES_CONFLICTO:
+        errores = error.get('errors', [])
+        if errores and errores[0].get('code') in ERROR_CODES_CONFLICTO:
             return jsonify(error), 409
         return jsonify(error), 400
     except Exception as e:

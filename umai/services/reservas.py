@@ -37,7 +37,7 @@ def _obtener_reserva_por_uuid(uuid_codigo: str):
         raise ValueError(construir_error_api(
             code=ERROR_CODE_RESERVA_NO_ENCONTRADA,
             message='Reserva no encontrada',
-            description=f'No existe una reserva con el cÃ³digo {uuid_codigo}'
+            description=f'No existe una reserva con el codigo {uuid_codigo}'
         ))
 
     return dict(row)
@@ -160,7 +160,7 @@ def _personas_reservadas_en_turno(str_fecha_utc: str) -> int:
     return sum(fila['cantidad_personas'] for fila in filas)
 
 
-def crear_reserva(data: dict) -> dict:
+def crear_reserva(data: dict) -> None:
     str_fecha_utc = data['fecha_hora_utc'].strftime(FORMATO_FECHA_STR_Z)
 
     personas_en_turno = _personas_reservadas_en_turno(str_fecha_utc)

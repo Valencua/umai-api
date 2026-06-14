@@ -12,7 +12,10 @@ if not DATABASE_URL:
 
 
 def get_connection():
-    return psycopg2.connect(DATABASE_URL)
+    try:
+        return psycopg2.connect(DATABASE_URL)
+    except psycopg2.OperationalError as e:
+        raise RuntimeError(f'No se pudo conectar a la base de datos: {e}')
 
 
 def fetch_all(sql: str, params=None) -> list:

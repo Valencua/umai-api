@@ -19,7 +19,7 @@ CORS(app)
 app.register_blueprint(auth_bp, url_prefix="/auth")
 app.register_blueprint(reservas_bp, url_prefix="/reservas")
 app.register_blueprint(platos_bp, url_prefix="/platos")
-app.register_blueprint(reseñas_bp, url_prefix="/reseñas")
+app.register_blueprint(reseñas_bp, url_prefix="/resenas")
 app.register_blueprint(servicios_bp, url_prefix="/servicios")
 app.register_blueprint(metricas_bp, url_prefix="/metricas")
 

@@ -13,7 +13,7 @@ API REST para la gestión integral de restaurantes: reservas, platos, reseñas, 
 ## 📌 Características
 
 - ✅ Gestión de reservas
-- ✅ Gestión de platos (menú)
+- ✅ Gestión de platos 
 - ✅ Gestión de reseñas
 - ✅ Gestión de servicios
 - ✅ Métricas y reportes
@@ -38,9 +38,9 @@ API REST para la gestión integral de restaurantes: reservas, platos, reseñas, 
 - **Python 3.11+**
 - **git**
 - **Linux / Ubuntu / Debian** (o **Windows con WSL**), ya que el script `setup_python.sh` usa `apt`.
-- Una cuenta y proyecto de **Supabase** (para las credenciales del `.env`).
+- Una cuenta y proyecto de **Supabase** 
 
-> ℹ️ El script instala automáticamente `pip` y `venv` si no están presentes.
+> ℹ️ El script instala o actualiza automáticamente `pip`
 
 ---
 
@@ -125,11 +125,6 @@ Las dependencias del proyecto están en `requirements.txt`:
 
 ```
 umai-api/
-├── app.py                   # Punto de entrada: crea la app Flask y registra los Blueprints
-├── requirements.txt         # Dependencias del proyecto
-├── setup_python.sh          # Script de instalación y ejecución (Linux/WSL)
-├── .env.example             # Plantilla de variables de entorno
-├── .gitignore
 ├── db/
 │   ├── connection.py        # Conexión a la base de datos con psycopg2
 │   └── supabase_client.py   # Cliente de conexión a Supabase
@@ -140,7 +135,13 @@ umai-api/
 │   ├── validators/          # Validaciones de datos de entrada
 │   ├── utils.py             # Utilidades generales
 │   └── constants.py         # Constantes globales
+├── app.py                   # Punto de entrada: crea la app Flask y registra los Blueprints
+├── requirements.txt         # Dependencias del proyecto
+├── setup_python.sh          # Script de instalación y ejecución (Linux/WSL)
+├── .gitignore               # Archivos elegidos para que no se suban al repositorio
 ├── README.md                # Este archivo
+├── vercel.json              # Manual de instrucciones personalizado para Vercel
+├── .env                     # Credenciales 
 └── LICENSE                  # Licencia del proyecto
 ```
 

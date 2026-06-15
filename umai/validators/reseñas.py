@@ -29,7 +29,7 @@ def validar_crear_reseña(body: dict) -> dict:
             errores.extend(e.args[0]['errors'])
     if isinstance(rating, int):
         try:
-            validar_minimo(rating, 0, 'rating')
+            validar_minimo(rating, 1, 'rating')
             validar_maximo(rating, 5, 'rating')
         except ValueError as e:
             errores.extend(e.args[0]['errors'])

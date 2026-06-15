@@ -46,38 +46,14 @@ API REST para la gestión integral de restaurantes: reservas, platos, reseñas, 
 
 ## 🚀 Instalación y Ejecución
 
-### 1️⃣ Clonar el repositorio y crear tu rama
-
-```bash
-git clone https://github.com/Valencua/umai-api.git
-cd umai-api
-git switch -c tu_rama_nueva
-```
-
-### 2️⃣ Configurar las variables de entorno
-
-La API usa Supabase, así que necesitás un archivo `.env` con tus credenciales. Copiá el ejemplo y completá los valores:
-
-```bash
-cp .env.example .env
-```
-
-Luego editá el `.env` y completá:
-
-```env
-SUPABASE_KEY=tu_supabase_key
-SUPABASE_URL=tu_supabase_url
-DATABASE_URL=tu_database_url
-```
-
-### 3️⃣ Ejecutar el setup e iniciar la aplicación
+### 1️⃣ Instalar dependencias y levantar la app
 
 ```bash
 bash setup_python.sh
 ```
 
 Este script:
-- ✓ Instala `pip` y `venv` si es necesario
+- ✓ Instala `pip` o lo actualiza si es necesario
 - ✓ Crea un entorno virtual aislado en la carpeta `venv/`
 - ✓ Activa el entorno virtual y verifica que se haya activado correctamente
 - ✓ Instala todas las dependencias **dentro del entorno virtual** desde `requirements.txt`
@@ -167,8 +143,6 @@ umai-api/
 ├── README.md                # Este archivo
 └── LICENSE                  # Licencia del proyecto
 ```
-
-> ℹ️ El archivo `.env` **no** se versiona (está en `.gitignore`). Se crea localmente a partir de `.env.example`.
 
 ---
 

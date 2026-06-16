@@ -51,7 +51,7 @@ CREATE TABLE IF NOT EXISTS reseñas (
     cliente_id  BIGINT NOT NULL UNIQUE,
     descripcion TEXT NOT NULL,
     estado      BOOLEAN NOT NULL DEFAULT TRUE,
-    rating      BIGINT NOT NULL,
+    rating      BIGINT NOT NULL CONSTRAINT rating_check CHECK (rating BETWEEN 1 AND 5),
     creado_en   TIMESTAMPTZ NOT NULL DEFAULT now(),
     CONSTRAINT fk_resenas_cliente FOREIGN KEY (cliente_id) REFERENCES clientes(cliente_id) ON DELETE CASCADE
 );

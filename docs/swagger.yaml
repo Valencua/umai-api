@@ -19,8 +19,8 @@ tags:
     description: Gestión de reservas
   - name: Platos
     description: Gestión del menú / platos
-  - name: Reseñas
-    description: Gestión de reseñas
+  - name: Resenas
+    description: Gestión de resenas
   - name: Servicios
     description: Gestión de servicios
   - name: Métricas
@@ -556,14 +556,14 @@ paths:
                 $ref: '#/components/schemas/ApiError'
 
   # ===========================================================
-  # RESEÑAS
+  # RESENAS
   # ===========================================================
-  /reseñas/:
+  /resenas/:
     get:
-      tags: [Reseñas]
-      summary: Listar reseñas por estado
+      tags: [Resenas]
+      summary: Listar resenas por estado
       description: >-
-        Lista las reseñas filtradas por su estado (aprobada/visible o no).
+        Lista las resenas filtradas por su estado (aprobada/visible o no).
         El parámetro `estado` es obligatorio.
       parameters:
         - name: estado
@@ -571,11 +571,11 @@ paths:
           required: true
           schema:
             type: boolean
-          description: "true o false. Filtra las reseñas por su estado."
+          description: "true o false. Filtra las resenas por su estado."
           example: true
       responses:
         '200':
-          description: Listado de reseñas
+          description: Listado de resenas
           content:
             application/json:
               schema:
@@ -587,7 +587,7 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: '#/components/schemas/ReseñaListItem'
+                      $ref: '#/components/schemas/ResenaListItem'
         '400':
           description: Falta el parámetro `estado` o tiene un valor inválido
           content:
@@ -601,12 +601,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiError'
     post:
-      tags: [Reseñas]
-      summary: Crear una reseña
+      tags: [Resenas]
+      summary: Crear una resena
       description: >-
-        Crea una reseña para un cliente (identificado por email). Reglas: el
+        Crea una resena para un cliente (identificado por email). Reglas: el
         cliente debe existir, debe tener al menos una reserva confirmada y no
-        haber dejado una reseña previa. La reseña se crea con `estado=false`
+        haber dejado una resena previa. La resena se crea con `estado=false`
         (pendiente de aprobación).
       requestBody:
         required: true
@@ -632,11 +632,11 @@ paths:
                   example: Excelente atención y comida riquísima
       responses:
         '201':
-          description: Reseña creada
+          description: Resena creada
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Reseña'
+                $ref: '#/components/schemas/Resena'
         '400':
           description: Cuerpo inválido o errores de validación
           content:
@@ -658,7 +658,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiError'
         '409':
-          description: El cliente ya dejó una reseña (`conflict.resena.duplicada`)
+          description: El cliente ya dejó una resena (`conflict.resena.duplicada`)
           content:
             application/json:
               schema:
@@ -670,20 +670,20 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiError'
 
-  /reseñas/{resena_id}:
+  /resenas/{resena_id}:
     delete:
-      tags: [Reseñas]
-      summary: Eliminar una reseña
+      tags: [Resenas]
+      summary: Eliminar una resena
       parameters:
         - name: resena_id
           in: path
           required: true
           schema:
             type: string
-          description: ID de la reseña.
+          description: ID de la resena.
       responses:
         '204':
-          description: Reseña eliminada (sin cuerpo)
+          description: Resena eliminada (sin cuerpo)
         '400':
           description: El `resena_id` no es un número válido
           content:
@@ -691,7 +691,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiError'
         '404':
-          description: La reseña no existe (`not_found.resena`)
+          description: La resena no existe (`not_found.resena`)
           content:
             application/json:
               schema:
@@ -703,16 +703,16 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiError'
     patch:
-      tags: [Reseñas]
-      summary: Actualizar el estado de una reseña
-      description: Cambia el estado (aprobada/visible) de una reseña.
+      tags: [Resenas]
+      summary: Actualizar el estado de una resena
+      description: Cambia el estado (aprobada/visible) de una resena.
       parameters:
         - name: resena_id
           in: path
           required: true
           schema:
             type: string
-          description: ID de la reseña.
+          description: ID de la resena.
       requestBody:
         required: true
         content:
@@ -736,7 +736,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiError'
         '404':
-          description: La reseña no existe (`not_found.reseña`)
+          description: La resena no existe (`not_found.resena`)
           content:
             application/json:
               schema:
@@ -1070,10 +1070,10 @@ components:
                 type: integer
               example: [3, 4]
 
-    ReseñaListItem:
+    ResenaListItem:
       type: object
       properties:
-        reseña_id:
+        resena_id:
           type: integer
           example: 1
         descripcion:
@@ -1092,10 +1092,10 @@ components:
               type: string
               example: Ana García
 
-    Reseña:
+    Resena:
       type: object
       properties:
-        reseña_id:
+        resena_id:
           type: integer
           example: 1
         cliente_id:

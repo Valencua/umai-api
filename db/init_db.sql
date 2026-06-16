@@ -83,14 +83,14 @@ INSERT INTO platos (nombre, descripcion, precio, foto) VALUES
     ('Sushi Roll',     'Roll de salmón y palta (8 piezas)',  7200, 'https://umai.example.com/platos/sushi.jpg');
 
 INSERT INTO etiquetas (nombre) VALUES
-    ('Vegetariano'), ('Sin TACC'), ('Picante'), ('Recomendado');
+    ('sin_tacc'), ('veggie'), ('spicy')
 
 INSERT INTO plato_etiquetas (plato_id, etiqueta_id) VALUES
     (1, 3),
-    (1, 4),
-    (2, 4),
-    (3, 2),
-    (3, 4);
+    (1, 2),
+    (2, 3),
+    (3, 1),
+    (3, 2);
 
 INSERT INTO reservas (cliente_id, fecha, cantidad_personas, uuid_codigo, qr_url, estado) VALUES
     (1, '2026-06-15 21:00:00-03', 4, '11111111-1111-1111-1111-111111111111', 'https://umai.example.com/qr/reserva-1.png', 'confirmado'),

@@ -76,7 +76,7 @@ def validar_crear_reserva(body: dict) -> dict:
     email = body['email'].strip().lower()
     telefono = body['telefono'].strip()
     fecha = body['fecha'].strip()
-    logger.debug(f"Fecha validada: {fecha}")
+    logger.debug(f"Fecha ingresada: {fecha}")
     try:
         validar_longitud(nombre, 'nombre', min=3, max=100)
         validar_solo_letras(nombre, 'nombre')
@@ -108,7 +108,7 @@ def validar_crear_reserva(body: dict) -> dict:
             errores.extend(e.args[0]['errors'])
 
     fecha_hora_local = None
-    logger.debug(f"Fecha validada: {fecha}")
+    
     try:
         obj_fecha = validar_formato_fecha(fecha,'%Y-%m-%dT%H:%M:%S.%f%z', 'fecha')
 

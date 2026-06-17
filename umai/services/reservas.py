@@ -162,7 +162,7 @@ def _personas_reservadas_en_turno(str_fecha_utc: str) -> int:
 
 def crear_reserva(data: dict) -> None:
     str_fecha_utc = data['fecha_hora_utc'].strftime(FORMATO_FECHA_STR_Z)
-
+    logger.debug(f"Fecha ingresada en utc: {str_fecha_utc}")
     personas_en_turno = _personas_reservadas_en_turno(str_fecha_utc)
     if personas_en_turno + data['cantidad_personas'] > CAPACIDAD_MAXIMA_PERSONAS_POR_TURNO:
         logger.warning(

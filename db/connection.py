@@ -1,10 +1,11 @@
 import os
-
+import logging
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from dotenv import load_dotenv
 
 load_dotenv()
+logger = logging.getLogger(__name__)
 
 DATABASE_URL = os.environ.get('DATABASE_URL')
 if not DATABASE_URL:
@@ -15,6 +16,7 @@ def get_connection():
     try:
         return psycopg2.connect(DATABASE_URL)
     except psycopg2.OperationalError as e:
+        logger.error('Error al conectar con la base de datos')
         raise RuntimeError(f'No se pudo conectar a la base de datos: {e}')
 
 

@@ -114,7 +114,7 @@ def validar_maximo(valor: int, maximo: int, nombre: str) -> int:
 
 def validar_email(email: str) -> str:
     if not EMAIL_RE.match(email):
-        logger.warning(f"Email inválido: '{email}'")
+        logger.warning(f"Email no coincide con formato valido: '{email}'")
 
         raise ValueError(construir_error_api(
             code='invalid.email.format',
@@ -129,7 +129,7 @@ def validar_telefono(telefono: str) -> str:
     telefono = telefono.strip()
 
     if not TELEFONO_RE.match(telefono):
-        logger.warning(f"Teléfono inválido: '{telefono}'")
+        logger.warning(f"Teléfono no coincide con formato valido: '{telefono}'")
 
         raise ValueError(construir_error_api(
             code='invalid.telefono.format',
@@ -142,7 +142,7 @@ def validar_telefono(telefono: str) -> str:
 
     digitos = sub(r'\D', '', telefono)
     if not (TELEFONO_MIN_DIGITOS <= len(digitos) <= TELEFONO_MAX_DIGITOS):
-        logger.warning(f"Teléfono con cantidad de dígitos inválida: '{telefono}'")
+        logger.warning(f"Teléfono con cantidad de digitos invalida: '{telefono}'")
 
         raise ValueError(construir_error_api(
             code='invalid.telefono.format',
